@@ -24,6 +24,11 @@ canvas {
   border: 3px solid #fff;
   border-radius: 8px;
   box-shadow: 0 2px 16px #000a;
+  width: 96vw;
+  max-width: 800px;
+  height: 60vw;
+  max-height: 500px;
+  touch-action: none;
 }
 
 .scoreboard {
