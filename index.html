@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>You Cant Defeat this game!</title>
+  <title>Simple Pong Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>You Cant Even Get 3 points!</h1>
+  <h1>Simple Pong Game</h1>
   <div class="game-container">
-    <canvas id="pongCanvas" width="800" height="500"></canvas>
+    <canvas id="pongCanvas"></canvas>
     <div class="scoreboard">
       <span id="leftScore">0</span> : <span id="rightScore">0</span>
     </div>
+    <div class="tv-tip">Use <span class="key">▲</span> <span class="key">▼</span> on your remote to move the paddle!</div>
   </div>
   <script src="game.js"></script>
 </body>

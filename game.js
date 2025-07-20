@@ -12,7 +12,7 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Variables depend on canvas size
+// Game settings (responsive)
 function getSettings() {
   return {
     width: canvas.width,
@@ -49,7 +49,7 @@ function resetBall() {
   ballSpeedY = (s.height / 180) * (Math.random() > 0.5 ? 1 : -1);
 }
 
-// Mouse control (PC)
+// Mouse support (PC)
 canvas.addEventListener('mousemove', function(e) {
   const rect = canvas.getBoundingClientRect();
   let mouseY = e.clientY - rect.top;
@@ -58,7 +58,7 @@ canvas.addEventListener('mousemove', function(e) {
   leftPaddleY = Math.max(0, Math.min(leftPaddleY, s.height - s.paddleHeight));
 });
 
-// Touch control (Phone)
+// Touch support (Phone)
 canvas.addEventListener('touchmove', function(e) {
   if (e.touches.length > 0) {
     const rect = canvas.getBoundingClientRect();
@@ -69,6 +69,20 @@ canvas.addEventListener('touchmove', function(e) {
   }
   e.preventDefault();
 }, { passive: false });
+
+// Remote control/keyboard support (Smart TVs)
+document.addEventListener('keydown', function(e) {
+  const s = getSettings();
+  if (e.key === 'ArrowUp') {
+    leftPaddleY -= s.paddleSpeed * 2;
+    leftPaddleY = Math.max(0, leftPaddleY);
+    e.preventDefault();
+  } else if (e.key === 'ArrowDown') {
+    leftPaddleY += s.paddleSpeed * 2;
+    leftPaddleY = Math.min(leftPaddleY, s.height - s.paddleHeight);
+    e.preventDefault();
+  }
+});
 
 function drawRect(x, y, w, h, color = '#fff') {
   ctx.fillStyle = color;

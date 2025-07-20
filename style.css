@@ -37,3 +37,24 @@ canvas {
   font-weight: bold;
   letter-spacing: 2px;
 }
+
+.tv-tip {
+  margin-top: 16px;
+  font-size: 1.1rem;
+  color: #8ef;
+  background: #222d;
+  border-radius: 8px;
+  padding: 6px 14px;
+  display: inline-block;
+}
+
+.key {
+  font-weight: bold;
+  font-size: 1.15em;
+  background: #fff;
+  color: #222;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin: 0 3px;
+  box-shadow: 1px 1px 1px #2226;
+}
