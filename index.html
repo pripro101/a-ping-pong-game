@@ -2,19 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Not a basic Ping pong game !</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pong Infinite Levels | Supabase Leaderboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Welcome To The Impossible Pong Game</h1>
-  <div class="game-container">
-    <canvas id="pongCanvas"></canvas>
-    <div class="scoreboard">
-      <span id="leftScore">0</span> : <span id="rightScore">0</span>
+  <!-- Registration/Login Modal -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <h2>Guest Account</h2>
+      <form id="registerForm" autocomplete="off">
+        <input type="text" id="regUsername" placeholder="Username" maxlength="15" required>
+        <input type="email" id="regEmail" placeholder="Email" required>
+        <input type="password" id="regPassword" placeholder="Password" required>
+        <button type="submit">Register</button>
+        <span class="toggle-link" id="showLogin">Already have an account? Login</span>
+        <div id="regError" class="error"></div>
+      </form>
+      <form id="loginForm" autocomplete="off" style="display:none;">
+        <input type="email" id="loginEmail" placeholder="Email" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="submit">Login</button>
+        <span class="toggle-link" id="showRegister">No account? Register</span>
+        <div id="loginError" class="error"></div>
+      </form>
     </div>
-    <div class="tv-tip">This Tip is for Tvs!.Use <span class="key">▲</span> <span class="key">▼</span> on your remote to move the paddle!</div>
   </div>
+  
+  <div id="gameArea" style="display:none;">
+    <div id="userBar"></div>
+    <canvas id="gameCanvas" width="480" height="320"></canvas>
+    <div id="gameOverMsg"></div>
+    <button id="restartBtn" style="display:none;">Next Level</button>
+    <div id="leaderboard">
+      <h2>Leaderboard</h2>
+      <ul id="leaderboardList"></ul>
+    </div>
+    <a href="leaderboard.html" target="_blank" id="leaderboardBtn">LEADERBOARD (CLICK ME FOR LEADERBOARD!)</a>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

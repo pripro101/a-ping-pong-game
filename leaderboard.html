@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pong Leaderboard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #searchForm {
+      max-width: 330px;
+      margin: 20px auto 0 auto;
+      display: flex;
+      gap: 10px;
+    }
+    #searchForm input[type="text"] {
+      flex: 1;
+      padding: 7px;
+      border-radius: 6px;
+      border: 1px solid #888;
+      font-size: 1em;
+    }
+    #searchForm button {
+      padding: 7px 26px;
+      border-radius: 6px;
+      border: none;
+      background: #4caf50;
+      color: #fff;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    @media (max-width: 500px) {
+      #searchForm { flex-direction: column; }
+      #searchForm button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="leaderboard">
+    <h2>Leaderboard</h2>
+    <form id="searchForm">
+      <input type="text" id="searchInput" placeholder="Search username..." maxlength="15">
+      <button type="submit">Search</button>
+    </form>
+    <ul id="leaderboardList"></ul>
+    <button id="backBtn" onclick="window.close()" style="display:block;margin:20px auto 0 auto;background:#f44336;color:#fff;border:none;padding:12px 32px;font-size:1.2em;border-radius:8px;">CLOSE</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script>
+    // Supabase settings
+    const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const leaderboardList = document.getElementById('leaderboardList');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+
+    async function fetchLeaderboard(username = "") {
+      let query = supabase
+        .from('Leaderboard')
+        .select('username,score,level')
+        .order('score', { ascending: false })
+        .limit(30);
+      if (username.trim()) {
+        query = query.ilike('username', `%${username.trim()}%`);
+      }
+      const { data, error } = await query;
+      leaderboardList.innerHTML = '';
+      if (data && data.length) {
+        data.forEach((entry) => {
+          const li = document.createElement('li');
+          li.textContent = `${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+          leaderboardList.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.textContent = 'No scores found.';
+        leaderboardList.appendChild(li);
+      }
+    }
+
+    searchForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      fetchLeaderboard(searchInput.value);
+    });
+
+    // Initial load
+    fetchLeaderboard();
+  </script>
+</body>
+</html>
