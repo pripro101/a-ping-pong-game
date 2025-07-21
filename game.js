@@ -1,12 +1,26 @@
 // Supabase settings
 const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Initialize Supabase only if online
+let supabase;
+let isOnline = navigator.onLine;
+const onlineStatus = document.getElementById('onlineStatus');
+
+if (isOnline) {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  onlineStatus.textContent = "ONLINE";
+  onlineStatus.className = "online";
+} else {
+  onlineStatus.textContent = "OFFLINE";
+  onlineStatus.className = "offline";
+}
 
 // Auth Elements
 const authModal = document.getElementById('authModal');
 const registerForm = document.getElementById('registerForm');
 const loginForm = document.getElementById('loginForm');
+const guestBtn = document.getElementById('guestBtn');
 const regUsername = document.getElementById('regUsername');
 const regEmail = document.getElementById('regEmail');
 const regPassword = document.getElementById('regPassword');
@@ -18,6 +32,7 @@ const showLogin = document.getElementById('showLogin');
 const showRegister = document.getElementById('showRegister');
 const gameArea = document.getElementById('gameArea');
 const userBar = document.getElementById('userBar');
+const leaderboardBtn = document.getElementById('leaderboardBtn');
 
 // Game Elements
 const canvas = document.getElementById('gameCanvas');
@@ -34,6 +49,27 @@ let maxPoints = 5;
 let running = false;
 let user = null;
 let username = "";
+let isGuest = false;
+
+// Online/offline detection
+window.addEventListener('online', () => {
+  isOnline = true;
+  onlineStatus.textContent = "ONLINE";
+  onlineStatus.className = "online";
+  if (!supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  if (!isGuest) fetchLeaderboard();
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  onlineStatus.textContent = "OFFLINE";
+  onlineStatus.className = "offline";
+  if (!isGuest) {
+    leaderboardList.innerHTML = '<li>Leaderboard unavailable offline</li>';
+  }
+});
 
 //
 // AUTH LOGIC
@@ -44,50 +80,90 @@ function showRegisterForm() {
   regError.textContent = "";
   loginError.textContent = "";
 }
+
 function showLoginForm() {
   registerForm.style.display = "none";
   loginForm.style.display = "block";
   regError.textContent = "";
   loginError.textContent = "";
 }
+
 showLogin.onclick = showLoginForm;
 showRegister.onclick = showRegisterForm;
 
+// Guest account handler
+guestBtn.onclick = () => {
+  isGuest = true;
+  username = "Guest";
+  userBar.textContent = `Playing as: ${username}`;
+  authModal.style.display = "none";
+  gameArea.style.display = "block";
+  leaderboardBtn.style.display = "none"; // Hide leaderboard button for guests
+  startGame();
+  
+  // Show offline message for leaderboard
+  if (!isOnline) {
+    leaderboardList.innerHTML = '<li>Leaderboard unavailable for guests</li>';
+  } else {
+    leaderboardList.innerHTML = '<li>Sign in to see leaderboard</li>';
+  }
+};
+
 registerForm.onsubmit = async (e) => {
   e.preventDefault();
+  if (!isOnline) {
+    regError.textContent = "Can't register while offline";
+    return;
+  }
+  
   regError.textContent = "";
   const uname = regUsername.value.trim();
   const email = regEmail.value.trim();
   const pass = regPassword.value;
+  
   if (!uname || !email || !pass) {
     regError.textContent = "Fill all fields.";
     return;
   }
+  
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
-      options: { data: { username: uname } }
+      options: { 
+        data: { username: uname },
+        emailRedirectTo: window.location.origin
+      }
     });
+    
     if (error) throw error;
-    // Wait for email confirmation if required
     regError.textContent = "Registration successful! Please check your email to confirm.";
+    regError.style.color = "#4CAF50";
   } catch (err) {
     regError.textContent = err.message || "Registration failed.";
+    regError.style.color = "#f44336";
   }
 };
 
 loginForm.onsubmit = async (e) => {
   e.preventDefault();
+  if (!isOnline) {
+    loginError.textContent = "Can't login while offline";
+    return;
+  }
+  
   loginError.textContent = "";
   const email = loginEmail.value.trim();
   const pass = loginPassword.value;
+  
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
+    isGuest = false;
     await fetchUser();
     authModal.style.display = "none";
     gameArea.style.display = "block";
+    leaderboardBtn.style.display = "inline-block"; // Show leaderboard button
     startGame();
     fetchLeaderboard();
   } catch (err) {
@@ -98,16 +174,15 @@ loginForm.onsubmit = async (e) => {
 async function fetchUser() {
   const { data: { user: gotUser } } = await supabase.auth.getUser();
   user = gotUser;
-  username = user?.user_metadata?.username || "Guest";
+  username = user?.user_metadata?.username || "User";
   userBar.textContent = `Logged in as: ${username}`;
 }
 
 //
-// GAME LOGIC
+// GAME LOGIC (same as before, but with offline support)
 //
 function getLevelSettings(level) {
   if (level === 1) return { aiSpeed: 2, maxPoints: 5 };
-  // For higher levels, randomize AI speed and max points (increase difficulty)
   return {
     aiSpeed: Math.floor(2 + Math.random() * (level + 2)),
     maxPoints: Math.floor(5 + Math.random() * (level * 2))
@@ -164,7 +239,7 @@ function update() {
   if(ball.x+ball.size/2 > ai.x && ball.y > ai.y && ball.y < ai.y+ai.h) ball.vx *= -1;
   if(ball.x < 0) { aiScore++; ball.x=canvas.width/2; ball.y=canvas.height/2; ball.vx=3; ball.vy=2; }
   if(ball.x > canvas.width) { playerScore++; ball.x=canvas.width/2; ball.y=canvas.height/2; ball.vx=-3; ball.vy=2; }
-  // AI movement - gets stronger each level
+  // AI movement
   if(ai.y+ai.h/2 < ball.y) ai.y += aiSpeed;
   if(ai.y+ai.h/2 > ball.y) ai.y -= aiSpeed;
   ai.y = Math.max(0, Math.min(ai.y, canvas.height-ai.h));
@@ -177,7 +252,9 @@ function onGameOver(won) {
   running = false;
   if(won) {
     gameOverMsg.textContent = `You win Level ${currentLevel}! Score: ${playerScore} (AI Level ${aiSpeed})`;
-    saveScore(username, playerScore, currentLevel, user?.id || null);
+    if (!isGuest && isOnline) {
+      saveScore(username, playerScore, currentLevel, user?.id || null);
+    }
     restartBtn.style.display = "inline-block";
     restartBtn.textContent = "Next Level";
   } else {
@@ -186,7 +263,7 @@ function onGameOver(won) {
     restartBtn.textContent = "Restart";
     currentLevel = 1;
   }
-  fetchLeaderboard();
+  if (!isGuest && isOnline) fetchLeaderboard();
 }
 
 restartBtn.onclick = () => {
@@ -220,45 +297,71 @@ function loop() {
 // LEADERBOARD LOGIC
 //
 async function fetchLeaderboard() {
-  // Show top 10 scores (username, score, level)
-  const { data, error } = await supabase
-    .from('Leaderboard')
-    .select('username,score,level')
-    .order('score', { ascending: false })
-    .limit(10);
-  leaderboardList.innerHTML = '';
-  if(data && data.length) {
-    data.forEach((entry, i) => {
+  if (!isOnline || isGuest) {
+    leaderboardList.innerHTML = isGuest ? '<li>Sign in to see leaderboard</li>' : '<li>Leaderboard unavailable offline</li>';
+    return;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('Leaderboard')
+      .select('username,score,level')
+      .order('score', { ascending: false })
+      .limit(10);
+      
+    leaderboardList.innerHTML = '';
+    if(data && data.length) {
+      data.forEach((entry, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${i+1}. ${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+        leaderboardList.appendChild(li);
+      });
+    } else {
       const li = document.createElement('li');
-      li.textContent = `${i+1}. ${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+      li.textContent = 'No scores yet.';
       leaderboardList.appendChild(li);
-    });
-  } else {
-    const li = document.createElement('li');
-    li.textContent = 'No scores yet.';
-    leaderboardList.appendChild(li);
+    }
+  } catch (err) {
+    leaderboardList.innerHTML = '<li>Error loading leaderboard</li>';
   }
 }
 
 async function saveScore(username, score, level, userId) {
-  await supabase
-    .from('Leaderboard')
-    .insert([{ user_id: userId, username, score, level }]);
-  await fetchLeaderboard();
+  if (!isOnline || isGuest) return;
+  
+  try {
+    await supabase
+      .from('Leaderboard')
+      .insert([{ user_id: userId, username, score, level }]);
+  } catch (err) {
+    console.error("Failed to save score:", err);
+  }
 }
 
-// On load: show auth modal if not logged in
+// On load
 window.onload = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    authModal.style.display = "flex";
-    gameArea.style.display = "none";
-    showRegisterForm();
-  } else {
-    await fetchUser();
-    authModal.style.display = "none";
-    gameArea.style.display = "block";
-    startGame();
-    fetchLeaderboard();
+  // Show appropriate UI based on online status
+  if (!isOnline) {
+    onlineStatus.textContent = "OFFLINE";
+    onlineStatus.className = "offline";
   }
+  
+  // Check for existing session only if online
+  if (isOnline) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await fetchUser();
+      authModal.style.display = "none";
+      gameArea.style.display = "block";
+      leaderboardBtn.style.display = "inline-block";
+      startGame();
+      fetchLeaderboard();
+      return;
+    }
+  }
+  
+  // Show auth modal with guest option
+  authModal.style.display = "flex";
+  gameArea.style.display = "none";
+  showRegisterForm();
 };

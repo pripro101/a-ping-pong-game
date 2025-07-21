@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong Infinite | By Pripro</title>
+  <title>Pong Infinite Levels | Supabase Leaderboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="onlineStatus" class="offline">OFFLINE</div>
+  
   <!-- Registration/Login Modal -->
   <div id="authModal" class="modal">
     <div class="modal-content">
-      <h4>Priproz Pong! made by pripro </h4>
-  
-      <h2>Register An Account</h2>
+      <h2>Welcome to Pong</h2>
       <form id="registerForm" autocomplete="off">
         <input type="text" id="regUsername" placeholder="Username" maxlength="15" required>
         <input type="email" id="regEmail" placeholder="Email" required>
@@ -27,6 +27,11 @@
         <span class="toggle-link" id="showRegister">No account? Register</span>
         <div id="loginError" class="error"></div>
       </form>
+      <button id="guestBtn" style="width:100%; padding:12px; border-radius:7px; border:none; 
+                background:#ff9800; color:#fff; font-size:1.1em; font-weight:bold; margin-top:10px;">
+        Play as Guest
+      </button>
+      <div class="guest-warning">Guest players can't access the leaderboard</div>
     </div>
   </div>
   
@@ -39,7 +44,7 @@
       <h2>Leaderboard</h2>
       <ul id="leaderboardList"></ul>
     </div>
-    <a href="leaderboard.html" target="_blank" id="leaderboardBtn">LEADERBOARD (CLICK ME FOR LEADERBOARD!)</a>
+    <a href="leaderboard.html" target="_blank" id="leaderboardBtn">LEADERBOARD</a>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>

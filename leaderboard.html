@@ -17,6 +17,8 @@
       border-radius: 6px;
       border: 1px solid #888;
       font-size: 1em;
+      background: #111;
+      color: #fff;
     }
     #searchForm button {
       padding: 7px 26px;
@@ -28,6 +30,24 @@
       font-weight: bold;
       cursor: pointer;
     }
+    #onlineStatus {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8em;
+      font-weight: bold;
+      z-index: 1001;
+    }
+    #onlineStatus.online {
+      background: #4CAF50;
+      color: white;
+    }
+    #onlineStatus.offline {
+      background: #f44336;
+      color: white;
+    }
     @media (max-width: 500px) {
       #searchForm { flex-direction: column; }
       #searchForm button { width: 100%; }
@@ -35,6 +55,7 @@
   </style>
 </head>
 <body>
+  <div id="onlineStatus" class="offline">OFFLINE</div>
   <div id="leaderboard">
     <h2>Leaderboard</h2>
     <form id="searchForm">
@@ -49,43 +70,86 @@
     // Supabase settings
     const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+    
+    let supabase;
+    let isOnline = navigator.onLine;
+    const onlineStatus = document.getElementById('onlineStatus');
     const leaderboardList = document.getElementById('leaderboardList');
     const searchForm = document.getElementById('searchForm');
     const searchInput = document.getElementById('searchInput');
 
-    async function fetchLeaderboard(username = "") {
-      let query = supabase
-        .from('Leaderboard')
-        .select('username,score,level')
-        .order('score', { ascending: false })
-        .limit(30);
-      if (username.trim()) {
-        query = query.ilike('username', `%${username.trim()}%`);
+    // Initialize based on online status
+    if (isOnline) {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      onlineStatus.textContent = "ONLINE";
+      onlineStatus.className = "online";
+      fetchLeaderboard();
+    } else {
+      onlineStatus.textContent = "OFFLINE";
+      onlineStatus.className = "offline";
+      leaderboardList.innerHTML = '<li>Leaderboard unavailable offline</li>';
+      searchForm.querySelector('button').disabled = true;
+    }
+
+    // Online/offline detection
+    window.addEventListener('online', () => {
+      isOnline = true;
+      onlineStatus.textContent = "ONLINE";
+      onlineStatus.className = "online";
+      if (!supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
-      const { data, error } = await query;
-      leaderboardList.innerHTML = '';
-      if (data && data.length) {
-        data.forEach((entry) => {
+      searchForm.querySelector('button').disabled = false;
+      fetchLeaderboard();
+    });
+
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      onlineStatus.textContent = "OFFLINE";
+      onlineStatus.className = "offline";
+      leaderboardList.innerHTML = '<li>Leaderboard unavailable offline</li>';
+      searchForm.querySelector('button').disabled = true;
+    });
+
+    async function fetchLeaderboard(username = "") {
+      if (!isOnline) return;
+      
+      try {
+        let query = supabase
+          .from('Leaderboard')
+          .select('username,score,level')
+          .order('score', { ascending: false })
+          .limit(30);
+          
+        if (username.trim()) {
+          query = query.ilike('username', `%${username.trim()}%`);
+        }
+        
+        const { data, error } = await query;
+        leaderboardList.innerHTML = '';
+        
+        if (data && data.length) {
+          data.forEach((entry) => {
+            const li = document.createElement('li');
+            li.textContent = `${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+            leaderboardList.appendChild(li);
+          });
+        } else {
           const li = document.createElement('li');
-          li.textContent = `${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+          li.textContent = 'No scores found.';
           leaderboardList.appendChild(li);
-        });
-      } else {
-        const li = document.createElement('li');
-        li.textContent = 'No scores found.';
-        leaderboardList.appendChild(li);
+        }
+      } catch (err) {
+        leaderboardList.innerHTML = '<li>Error loading leaderboard</li>';
       }
     }
 
     searchForm.addEventListener('submit', function(e){
       e.preventDefault();
-      fetchLeaderboard(searchInput.value);
+      if (isOnline) {
+        fetchLeaderboard(searchInput.value);
+      }
     });
-
-    // Initial load
-    fetchLeaderboard();
   </script>
 </body>
 </html>
