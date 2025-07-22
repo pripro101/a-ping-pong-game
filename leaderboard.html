@@ -1,108 +1,160 @@
-<!-- [Previous HTML remains the same until the script section] -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pripro Pong Leaderboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="leaderboard-container">
+    <div class="leaderboard-header">
+      <h1><i class="fas fa-trophy"></i> Pripro Pong Leaderboard</h1>
+      <div class="last-updated" id="lastUpdated"></div>
+    </div>
 
-<script>
-  // Initialize Supabase properly
-  const supabaseUrl = 'https://xvdeijzqjumkvchxabwc.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    <div class="search-container">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search username...">
+      <button class="search-btn" id="searchBtn">
+        <i class="fas fa-search"></i> Search
+      </button>
+    </div>
 
-  // DOM elements
-  const leaderboardList = document.getElementById('leaderboardList');
-  const searchInput = document.getElementById('searchInput');
-  const searchBtn = document.getElementById('searchBtn');
-  const loadingElement = document.getElementById('loading');
-  const lastUpdated = document.getElementById('lastUpdated');
+    <div class="loading" id="loading">
+      <i class="fas fa-spinner fa-spin"></i> Loading leaderboard...
+    </div>
 
-  // Current user from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentUser = urlParams.get('user');
+    <ul class="leaderboard-list" id="leaderboardList"></ul>
 
-  // Fetch leaderboard data with error handling
-  async function fetchLeaderboard(searchTerm = '') {
-    try {
-      loadingElement.style.display = 'block';
-      leaderboardList.innerHTML = '';
-      
-      // First verify connection
-      const { data: testData, error: testError } = await supabase
-        .from('Leaderboard')
-        .select('*')
-        .limit(1);
-      
-      if (testError) throw testError;
+    <button id="backBtn" class="btn">
+      <i class="fas fa-arrow-left"></i> Back to Game
+    </button>
+  </div>
 
-      // Main query
-      let query = supabase
-        .from('Leaderboard')
-        .select('id, username, score, level, created_at')
-        .order('score', { ascending: false })
-        .limit(100);
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Supabase config (same as game.js)
+    const supabaseUrl = 'https://xvdeijzqjumkvchxabwc.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-      if (searchTerm.trim()) {
-        query = query.ilike('username', `%${searchTerm.trim()}%`);
-      }
+    // DOM elements
+    const leaderboardList = document.getElementById('leaderboardList');
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const loadingElement = document.getElementById('loading');
+    const lastUpdated = document.getElementById('lastUpdated');
+    const backBtn = document.getElementById('backBtn');
 
-      const { data, error } = await query;
+    // Current user from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentUser = urlParams.get('user');
 
-      if (error) throw error;
-
-      loadingElement.style.display = 'none';
-      
-      if (!data || data.length === 0) {
-        leaderboardList.innerHTML = '<li class="leaderboard-item">No scores yet. Be the first!</li>';
-        return;
-      }
-
-      // Render leaderboard items
-      data.forEach((entry, index) => {
-        const li = document.createElement('li');
-        li.className = 'leaderboard-item';
+    // Fetch leaderboard data
+    async function fetchLeaderboard(searchTerm = '') {
+      try {
+        loadingElement.style.display = 'block';
+        leaderboardList.innerHTML = '';
         
-        // Highlight current user
-        if (currentUser && entry.username === currentUser) {
-          li.classList.add('current-user');
+        // First verify connection
+        const { data: testData, error: testError } = await supabase
+          .from('Leaderboard')
+          .select('*')
+          .limit(1);
+        
+        if (testError) throw testError;
+
+        // Main query
+        let query = supabase
+          .from('Leaderboard')
+          .select('id, username, score, level, created_at')
+          .order('score', { ascending: false })
+          .limit(100);
+
+        if (searchTerm.trim()) {
+          query = query.ilike('username', `%${searchTerm.trim()}%`);
         }
 
-        // Top 3 styling
-        let rankClass = '';
-        let medalIcon = '';
-        if (index === 0) {
-          rankClass = 'rank-1';
-          medalIcon = '<i class="fas fa-crown"></i>';
-        } else if (index === 1) {
-          rankClass = 'rank-2';
-          medalIcon = '<i class="fas fa-medal"></i>';
-        } else if (index === 2) {
-          rankClass = 'rank-3';
-          medalIcon = '<i class="fas fa-medal"></i>';
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        loadingElement.style.display = 'none';
+        
+        if (!data || data.length === 0) {
+          leaderboardList.innerHTML = '<li class="leaderboard-item">No scores yet. Be the first!</li>';
+          return;
         }
 
-        li.innerHTML = `
-          <div class="rank ${rankClass}">${medalIcon}${index + 1}</div>
-          <div class="user-info">
-            <span class="username">${entry.username}</span>
-          </div>
-          <div>
-            <span class="score">${entry.score} pts</span>
-            <span class="level">(Level ${entry.level})</span>
-          </div>
+        // Render leaderboard items
+        data.forEach((entry, index) => {
+          const li = document.createElement('li');
+          li.className = 'leaderboard-item';
+          
+          // Highlight current user
+          if (currentUser && entry.username === currentUser) {
+            li.classList.add('current-user');
+          }
+
+          // Top 3 styling
+          let rankClass = '';
+          let medalIcon = '';
+          if (index === 0) {
+            rankClass = 'rank-1';
+            medalIcon = '<i class="fas fa-crown"></i>';
+          } else if (index === 1) {
+            rankClass = 'rank-2';
+            medalIcon = '<i class="fas fa-medal"></i>';
+          } else if (index === 2) {
+            rankClass = 'rank-3';
+            medalIcon = '<i class="fas fa-medal"></i>';
+          }
+
+          li.innerHTML = `
+            <div class="rank ${rankClass}">${medalIcon}${index + 1}</div>
+            <div class="user-info">
+              <span class="username">${entry.username}</span>
+            </div>
+            <div>
+              <span class="score">${entry.score} pts</span>
+              <span class="level">(Level ${entry.level})</span>
+            </div>
+          `;
+          leaderboardList.appendChild(li);
+        });
+
+        lastUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+      } catch (error) {
+        console.error('Leaderboard error:', error);
+        loadingElement.style.display = 'none';
+        leaderboardList.innerHTML = `
+          <li class="leaderboard-item error">
+            <i class="fas fa-exclamation-triangle"></i>
+            ${error.message || 'Failed to load leaderboard'}
+          </li>
         `;
-        leaderboardList.appendChild(li);
-      });
-
-      lastUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
-
-    } catch (error) {
-      console.error('Leaderboard error:', error);
-      loadingElement.style.display = 'none';
-      leaderboardList.innerHTML = `
-        <li class="leaderboard-item error">
-          <i class="fas fa-exclamation-triangle"></i>
-          ${error.message || 'Failed to load leaderboard'}
-        </li>
-      `;
+      }
     }
-  }
 
-  // [Rest of the event listeners remain the same...]
-</script>
+    // Event listeners
+    searchBtn.addEventListener('click', () => {
+      fetchLeaderboard(searchInput.value);
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        fetchLeaderboard(searchInput.value);
+      }
+    });
+
+    backBtn.addEventListener('click', () => {
+      window.close();
+    });
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', fetchLeaderboard);
+  </script>
+</body>
+</html>

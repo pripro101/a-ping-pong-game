@@ -5,7 +5,21 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Initialize Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Game Elements
+// Game State Variables
+let ball, player, ai;
+let playerScore = 0, aiScore = 0;
+let isGameOver = false, winner = null;
+let currentLevel = 1;
+let aiSpeed = 2, maxPoints = 5;
+let running = false;
+let isGuest = false;
+let username = "";
+let user = null;
+let deviceType = 'desktop';
+let os = 'unknown';
+let moveUp = false, moveDown = false;
+
+// DOM Elements
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const playerScoreEl = document.getElementById('playerScore');
@@ -23,120 +37,75 @@ const gameContainer = document.getElementById('gameContainer');
 const userBar = document.getElementById('userBar');
 const onlineStatus = document.getElementById('onlineStatus');
 
-// Game State
-let ball, player, ai;
-let playerScore = 0, aiScore = 0;
-let isGameOver = false, winner = null;
-let currentLevel = 1;
-let aiSpeed = 2, maxPoints = 5;
-let running = false;
-let isGuest = false;
-let username = "";
-let user = null;
-let deviceType = 'desktop';
-let os = 'unknown';
-let moveUp = false, moveDown = false;
+// ========================
+// LOADING SYSTEM
+// ========================
 
-// ========================
-// INITIALIZATION
-// ========================
+async function initializeGame() {
+  showLoading("Initializing Pripro Pong...");
+  
+  try {
+    detectDevice();
+    
+    // Minimum loading time (better UX)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    if (navigator.onLine) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await fetchUser();
+        showGameUI();
+        return;
+      }
+    }
+    
+    // Fallback to auth modal
+    showAuthModal();
+    
+  } catch (error) {
+    showError("Failed to load. Please refresh.");
+    console.error("Initialization error:", error);
+  } finally {
+    hideLoading();
+  }
+}
 
 function detectDevice() {
-  const userAgent = navigator.userAgent;
-  if (/android/i.test(userAgent)) os = 'Android';
-  else if (/iPad|iPhone|iPod/.test(userAgent)) os = 'iOS';
-  else if (/Windows/.test(userAgent)) os = 'Windows';
-  else if (/Mac/.test(userAgent)) os = 'MacOS';
-  else if (/Linux/.test(userAgent)) os = 'Linux';
-  
-  if (/Mobile|Android|iP(hone|od)|IEMobile/.test(userAgent)) deviceType = 'mobile';
-  else if (/Tablet|iPad/.test(userAgent)) deviceType = 'tablet';
-  
-  document.getElementById('loaderDetails').innerHTML = `
-    <i class="fas fa-${deviceType === 'mobile' ? 'mobile-alt' : deviceType === 'tablet' ? 'tablet-alt' : 'desktop'}"></i>
-    ${os} | ${deviceType.toUpperCase()}
+  const ua = navigator.userAgent;
+  if (/mobile|android|iphone|ipad/i.test(ua)) deviceType = 'mobile';
+  document.getElementById('loaderDetails').textContent = `Device: ${deviceType.toUpperCase()}`;
+}
+
+function showLoading(message) {
+  document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('loaderText').textContent = message;
+}
+
+function hideLoading() {
+  document.getElementById('loadingScreen').style.display = 'none';
+}
+
+function showError(message) {
+  const loader = document.getElementById('loadingScreen');
+  loader.innerHTML = `
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>${message}</p>
+      <button onclick="window.location.reload()">Refresh</button>
+    </div>
   `;
 }
 
-async function initializeGame() {
-  detectDevice();
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Minimum loading time
-  
-  if (isOnline) {
-    await checkSession();
-  } else {
-    updateOnlineStatus(false);
-    document.getElementById('loadingScreen').style.display = 'none';
-    authModal.style.display = 'flex';
-  }
+function showAuthModal() {
+  authModal.style.display = 'flex';
 }
 
-// ========================
-// AUTHENTICATION
-// ========================
-
-async function checkSession() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await fetchUser();
-      authModal.style.display = "none";
-      gameContainer.style.display = "block";
-      startGame();
-    } else {
-      authModal.style.display = "flex";
-      showRegisterForm();
-    }
-  } catch (err) {
-    console.error("Session check failed:", err);
-    authModal.style.display = "flex";
-    showRegisterForm();
-  } finally {
-    document.getElementById('loadingScreen').style.display = 'none';
-  }
-}
-
-async function fetchUser() {
-  try {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
-      user = currentUser;
-      username = user.user_metadata?.username || user.email || "Player";
-      userBar.textContent = `Logged in as: ${username}`;
-      await loadSavedLevel();
-      updateLeaderboardLink();
-    }
-  } catch (err) {
-    console.error("Failed to fetch user:", err);
-  }
-}
-
-async function handleLogin(email, password) {
-  const errorEl = document.getElementById('loginError');
-  errorEl.textContent = '';
-  
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password
-    });
-
-    if (error) throw error;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Session not created");
-
-    await fetchUser();
-    authModal.style.display = "none";
-    gameContainer.style.display = "block";
-    startGame();
-    fetchLeaderboard();
-    
-  } catch (err) {
-    errorEl.textContent = err.message.includes('Invalid login credentials')
-      ? "Incorrect email or password"
-      : "Login failed. Please try again.";
-    errorEl.style.color = "#ff5555";
+function showGameUI() {
+  authModal.style.display = 'none';
+  gameContainer.style.display = 'block';
+  resizeCanvas();
+  if (deviceType === 'mobile') {
+    document.getElementById('mobileControls').style.display = 'flex';
   }
 }
 
@@ -188,12 +157,13 @@ function startGame() {
   initGameObjects();
   running = true;
   updateScore();
-  loop();
+  gameLoop();
 }
 
 function gameLoop() {
   if (!running) return;
   
+  // Mobile controls
   if (moveUp) player.y -= player.speed;
   if (moveDown) player.y += player.speed;
   player.y = Math.max(0, Math.min(player.y, canvas.height - player.h));
@@ -204,11 +174,203 @@ function gameLoop() {
 }
 
 function update() {
-  // [Previous update logic remains identical...]
+  // Ball movement
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+  
+  // Wall collision
+  if (ball.y < ball.size || ball.y > canvas.height - ball.size) {
+    ball.vy *= -1;
+  }
+  
+  // Paddle collision
+  if (ball.x - ball.size < player.x + player.w && 
+      ball.y > player.y && ball.y < player.y + player.h) {
+    ball.vx = Math.abs(ball.vx) * 1.05;
+    const hitPos = (ball.y - (player.y + player.h/2)) / (player.h/2);
+    ball.vy = hitPos * 5;
+  }
+  
+  if (ball.x + ball.size > ai.x && 
+      ball.y > ai.y && ball.y < ai.y + ai.h) {
+    ball.vx = -Math.abs(ball.vx) * 1.05;
+    const hitPos = (ball.y - (ai.y + ai.h/2)) / (ai.h/2);
+    ball.vy = hitPos * 5;
+  }
+  
+  // Scoring
+  if (ball.x < 0) {
+    aiScore++;
+    resetBall(false);
+  }
+  
+  if (ball.x > canvas.width) {
+    playerScore++;
+    resetBall(true);
+  }
+  
+  // AI Movement
+  const aiCenter = ai.y + ai.h/2;
+  if (aiCenter < ball.y - 10) {
+    ai.y += ai.speed;
+  } else if (aiCenter > ball.y + 10) {
+    ai.y -= ai.speed;
+  }
+  ai.y = Math.max(0, Math.min(ai.y, canvas.height - ai.h));
+  
+  // Win Condition
+  if (playerScore >= maxPoints) {
+    endGame(true);
+  } else if (aiScore >= maxPoints) {
+    endGame(false);
+  }
 }
 
 function draw() {
-  // [Previous draw logic remains identical...]
+  // Clear with translucent for trail effect
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Center line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 20; i < canvas.height; i += 40) {
+    ctx.moveTo(canvas.width/2, i);
+    ctx.lineTo(canvas.width/2, i + 20);
+  }
+  ctx.stroke();
+  
+  // Ball with gradient
+  const ballGradient = ctx.createRadialGradient(
+    ball.x, ball.y, 0,
+    ball.x, ball.y, ball.size
+  );
+  ballGradient.addColorStop(0, '#fd79a8');
+  ballGradient.addColorStop(1, '#e84393');
+  ctx.fillStyle = ballGradient;
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Paddles with gradients
+  const playerGradient = ctx.createLinearGradient(
+    player.x, 0, player.x + player.w, 0
+  );
+  playerGradient.addColorStop(0, '#00b894');
+  playerGradient.addColorStop(1, '#55efc4');
+  ctx.fillStyle = playerGradient;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  
+  const aiGradient = ctx.createLinearGradient(
+    ai.x, 0, ai.x + ai.w, 0
+  );
+  aiGradient.addColorStop(0, '#d63031');
+  aiGradient.addColorStop(1, '#ff7675');
+  ctx.fillStyle = aiGradient;
+  ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
+}
+
+function resetBall(playerScored) {
+  ball.x = canvas.width/2;
+  ball.y = canvas.height/2;
+  ball.vx = playerScored ? -Math.abs(canvas.width * 0.005) : Math.abs(canvas.width * 0.005);
+  ball.vy = (Math.random() * 2 - 1) * canvas.height * 0.005;
+  updateScore();
+}
+
+function updateScore() {
+  playerScoreEl.textContent = playerScore;
+  aiScoreEl.textContent = aiScore;
+}
+
+function updateLevelInfo() {
+  levelDisplay.textContent = currentLevel;
+  maxPointsEl.textContent = maxPoints;
+}
+
+function endGame(won) {
+  running = false;
+  isGameOver = true;
+  
+  if (won) {
+    gameOverMsg.innerHTML = `<i class="fas fa-trophy"></i> You won Level ${currentLevel}!`;
+    currentLevel++;
+    const settings = getLevelSettings(currentLevel);
+    aiSpeed = settings.aiSpeed;
+    maxPoints = settings.maxPoints;
+    ai.speed = canvas.height * (0.005 * aiSpeed);
+    updateLevelInfo();
+    
+    if (!isGuest && navigator.onLine) {
+      saveScore();
+      saveLevelProgress();
+    }
+    
+    startGameBtn.textContent = 'Next Level';
+  } else {
+    gameOverMsg.innerHTML = `<i class="fas fa-times-circle"></i> Game Over at Level ${currentLevel}`;
+    currentLevel = Math.max(1, currentLevel - 1);
+    if (!isGuest && navigator.onLine) saveLevelProgress();
+    startGameBtn.textContent = 'Try Again';
+  }
+  
+  startGameBtn.style.display = 'block';
+}
+
+function getLevelSettings(level) {
+  if (level === 1) return { aiSpeed: 2, maxPoints: 5 };
+  return {
+    aiSpeed: 2 + Math.min(level * 0.5, 8),
+    maxPoints: 5 + Math.floor(level * 0.5)
+  };
+}
+
+// ========================
+// AUTHENTICATION
+// ========================
+
+async function fetchUser() {
+  try {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser) {
+      user = currentUser;
+      username = currentUser.user_metadata?.username || currentUser.email || "Player";
+      userBar.textContent = `Logged in as: ${username}`;
+      await loadSavedLevel();
+      updateLeaderboardLink();
+    }
+  } catch (err) {
+    console.error("Failed to fetch user:", err);
+  }
+}
+
+async function handleLogin(email, password) {
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+  
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+
+    if (error) throw error;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Session not created");
+
+    await fetchUser();
+    authModal.style.display = "none";
+    gameContainer.style.display = "block";
+    startGame();
+    
+  } catch (err) {
+    errorEl.textContent = err.message.includes('Invalid login credentials')
+      ? "Incorrect email or password"
+      : "Login failed. Please try again.";
+    errorEl.style.color = "#ff5555";
+  }
 }
 
 // ========================
@@ -216,7 +378,7 @@ function draw() {
 // ========================
 
 async function fetchLeaderboard() {
-  if (!isOnline || isGuest) return;
+  if (isGuest || !navigator.onLine) return;
   
   try {
     const { data, error } = await supabase
@@ -243,7 +405,7 @@ async function fetchLeaderboard() {
 }
 
 async function saveScore() {
-  if (!isOnline || isGuest || !user) return;
+  if (isGuest || !user || !navigator.onLine) return;
   
   try {
     await supabase
@@ -260,7 +422,7 @@ async function saveScore() {
 }
 
 async function loadSavedLevel() {
-  if (!isOnline || isGuest) return;
+  if (isGuest || !navigator.onLine) return;
   
   try {
     const { data, error } = await supabase
@@ -281,23 +443,89 @@ async function loadSavedLevel() {
   }
 }
 
+async function saveLevelProgress() {
+  if (isGuest || !user || !navigator.onLine) return;
+  
+  try {
+    await supabase
+      .from('PlayerProgress')
+      .upsert({
+        user_id: user.id,
+        level: currentLevel,
+        updated_at: new Date().toISOString()
+      });
+  } catch (err) {
+    console.error("Progress save failed:", err);
+  }
+}
+
+function updateLeaderboardLink() {
+  const links = document.querySelectorAll('a[href="leaderboard.html"]');
+  links.forEach(link => {
+    link.href = `leaderboard.html?user=${encodeURIComponent(username)}`;
+  });
+}
+
 // ========================
 // EVENT LISTENERS
 // ========================
 
-// Initialize
-window.addEventListener('load', initializeGame);
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('online', () => updateOnlineStatus(true));
-window.addEventListener('offline', () => updateOnlineStatus(false));
+// Initialize game when DOM loads
+window.addEventListener('DOMContentLoaded', initializeGame);
 
-// Auth Forms
+// Window resize handler
+window.addEventListener('resize', resizeCanvas);
+
+// Online/offline detection
+window.addEventListener('online', () => {
+  onlineStatus.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
+  onlineStatus.className = 'online';
+});
+
+window.addEventListener('offline', () => {
+  onlineStatus.innerHTML = '<i class="fas fa-plug"></i> OFFLINE';
+  onlineStatus.className = 'offline';
+});
+
+// Auth forms
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await handleLogin(
     document.getElementById('loginEmail').value,
     document.getElementById('loginPassword').value
   );
+});
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('regError');
+  errorEl.textContent = '';
+  
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  
+  if (!username || !email || !password) {
+    errorEl.textContent = "Please fill all fields";
+    return;
+  }
+  
+  try {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } }
+    });
+    
+    if (error) throw error;
+    
+    errorEl.textContent = "Registration successful! Check your email.";
+    errorEl.style.color = "#00b894";
+    
+  } catch (err) {
+    errorEl.textContent = err.message || "Registration failed";
+    errorEl.style.color = "#ff5555";
+  }
 });
 
 document.getElementById('guestBtn').addEventListener('click', () => {
@@ -309,10 +537,88 @@ document.getElementById('guestBtn').addEventListener('click', () => {
   startGame();
 });
 
-// [Rest of your event listeners remain unchanged...]
+document.getElementById('offlineUsernameForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const usernameInput = document.getElementById('offlineUsernameInput');
+  const username = usernameInput.value.trim();
+  
+  if (username) {
+    isGuest = true;
+    userBar.textContent = `Playing offline as: ${username}`;
+    offlineUsernameModal.style.display = 'none';
+    gameContainer.style.display = 'block';
+    startGame();
+  }
+});
 
-// Start the game
-function beginGame() {
-  resizeCanvas();
-  startGame();
-}
+// Game controls
+startGameBtn.addEventListener('click', () => {
+  if (isGuest || navigator.onLine) {
+    startGame();
+  } else {
+    authModal.style.display = 'none';
+    offlineUsernameModal.style.display = 'flex';
+  }
+});
+
+resetLevelBtn.addEventListener('click', () => {
+  currentLevel = 1;
+  const settings = getLevelSettings(currentLevel);
+  aiSpeed = settings.aiSpeed;
+  maxPoints = settings.maxPoints;
+  updateLevelInfo();
+  
+  if (!isGuest && navigator.onLine) saveLevelProgress();
+  
+  if (running) startGame();
+});
+
+// Mobile controls
+upBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  moveUp = true;
+}, { passive: false });
+
+upBtn.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  moveUp = false;
+}, { passive: false });
+
+downBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  moveDown = true;
+}, { passive: false });
+
+downBtn.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  moveDown = false;
+}, { passive: false });
+
+// Mouse/touch controls
+canvas.addEventListener('mousemove', (e) => {
+  if (!running) return;
+  const rect = canvas.getBoundingClientRect();
+  player.y = e.clientY - rect.top - player.h/2;
+  player.y = Math.max(0, Math.min(player.y, canvas.height - player.h));
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!running) return;
+  const rect = canvas.getBoundingClientRect();
+  player.y = e.touches[0].clientY - rect.top - player.h/2;
+  player.y = Math.max(0, Math.min(player.y, canvas.height - player.h));
+}, { passive: false });
+
+// Toggle between login/register forms
+document.getElementById('showLogin').addEventListener('click', () => {
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('regError').textContent = '';
+});
+
+document.getElementById('showRegister').addEventListener('click', () => {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginError').textContent = '';
+});

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pripro Pong</title>
+  <title>Pripro Pong Game</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Loading Screen -->
   <div id="loadingScreen">
-    <div class="loader">
+    <div class="loader-content">
       <div class="loader-circle"></div>
-      <div class="loader-text">Initializing Neon Pong...</div>
-      <div class="loader-details" id="loaderDetails"></div>
+      <div id="loaderText">Loading Pripro Pong...</div>
+      <div id="loaderDetails"></div>
     </div>
   </div>
 
@@ -93,7 +93,7 @@
     </button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="game.js"></script>
 </body>
 </html>
