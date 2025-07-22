@@ -2,153 +2,191 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Pong Leaderboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
-  <style>
-    #searchForm {
-      max-width: 330px;
-      margin: 20px auto 0 auto;
-      display: flex;
-      gap: 10px;
-    }
-    #searchForm input[type="text"] {
-      flex: 1;
-      padding: 7px;
-      border-radius: 6px;
-      border: 1px solid #888;
-      font-size: 1em;
-      background: #111;
-      color: #fff;
-    }
-    #searchForm button {
-      padding: 7px 26px;
-      border-radius: 6px;
-      border: none;
-      background: #4caf50;
-      color: #fff;
-      font-size: 1em;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #onlineStatus {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 0.8em;
-      font-weight: bold;
-      z-index: 1001;
-    }
-    #onlineStatus.online {
-      background: #4CAF50;
-      color: white;
-    }
-    #onlineStatus.offline {
-      background: #f44336;
-      color: white;
-    }
-    @media (max-width: 500px) {
-      #searchForm { flex-direction: column; }
-      #searchForm button { width: 100%; }
-    }
-  </style>
 </head>
 <body>
-  <div id="onlineStatus" class="offline">OFFLINE</div>
-  <div id="leaderboard">
-    <h2>Leaderboard</h2>
-    <form id="searchForm">
-      <input type="text" id="searchInput" placeholder="Search username..." maxlength="15">
-      <button type="submit">Search</button>
-    </form>
-    <ul id="leaderboardList"></ul>
-    <button id="backBtn" onclick="window.close()" style="display:block;margin:20px auto 0 auto;background:#f44336;color:#fff;border:none;padding:12px 32px;font-size:1.2em;border-radius:8px;">CLOSE</button>
+  <!-- Theme Toggle -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn">
+      <i class="fas fa-moon"></i> Theme
+    </button>
+    <div class="theme-dropdown" id="themeDropdown">
+      <div class="theme-option" data-theme="dark">
+        <i class="fas fa-moon"></i> Dark Mode
+      </div>
+      <div class="theme-option" data-theme="light">
+        <i class="fas fa-sun"></i> Light Mode
+      </div>
+    </div>
   </div>
+
+  <!-- Leaderboard Container -->
+  <div class="leaderboard-container">
+    <div class="leaderboard-header">
+      <h1><i class="fas fa-trophy"></i> Neon Pong Leaderboard</h1>
+      <div class="last-updated" id="lastUpdated"></div>
+    </div>
+
+    <div class="search-container">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search username...">
+      <button class="search-btn" id="searchBtn">
+        <i class="fas fa-search"></i> Search
+      </button>
+    </div>
+
+    <div class="loading" id="loading">
+      <i class="fas fa-spinner fa-spin"></i> Loading leaderboard...
+    </div>
+
+    <ul class="leaderboard-list" id="leaderboardList"></ul>
+
+    <button id="backBtn" class="btn">
+      <i class="fas fa-arrow-left"></i> Back to Game
+    </button>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script>
-    // Supabase settings
+    // Supabase configuration
     const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
     
-    let supabase;
-    let isOnline = navigator.onLine;
-    const onlineStatus = document.getElementById('onlineStatus');
+    // Initialize Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // DOM elements
     const leaderboardList = document.getElementById('leaderboardList');
-    const searchForm = document.getElementById('searchForm');
     const searchInput = document.getElementById('searchInput');
-
-    // Initialize based on online status
-    if (isOnline) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      onlineStatus.textContent = "ONLINE";
-      onlineStatus.className = "online";
-      fetchLeaderboard();
-    } else {
-      onlineStatus.textContent = "OFFLINE";
-      onlineStatus.className = "offline";
-      leaderboardList.innerHTML = '<li>Leaderboard unavailable offline</li>';
-      searchForm.querySelector('button').disabled = true;
+    const searchBtn = document.getElementById('searchBtn');
+    const loadingElement = document.getElementById('loading');
+    const lastUpdated = document.getElementById('lastUpdated');
+    const themeBtn = document.getElementById('themeBtn');
+    const themeDropdown = document.getElementById('themeDropdown');
+    const backBtn = document.getElementById('backBtn');
+    
+    // Current user from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentUser = urlParams.get('user');
+    
+    // Theme management
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      themeDropdown.classList.remove('show');
     }
-
-    // Online/offline detection
-    window.addEventListener('online', () => {
-      isOnline = true;
-      onlineStatus.textContent = "ONLINE";
-      onlineStatus.className = "online";
-      if (!supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-      searchForm.querySelector('button').disabled = false;
-      fetchLeaderboard();
-    });
-
-    window.addEventListener('offline', () => {
-      isOnline = false;
-      onlineStatus.textContent = "OFFLINE";
-      onlineStatus.className = "offline";
-      leaderboardList.innerHTML = '<li>Leaderboard unavailable offline</li>';
-      searchForm.querySelector('button').disabled = true;
-    });
-
-    async function fetchLeaderboard(username = "") {
-      if (!isOnline) return;
-      
+    
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      setTheme(savedTheme);
+    }
+    
+    // Fetch leaderboard data
+    async function fetchLeaderboard(searchTerm = '') {
       try {
+        loadingElement.style.display = 'block';
+        leaderboardList.innerHTML = '';
+        
         let query = supabase
           .from('Leaderboard')
-          .select('username,score,level')
+          .select('username, score, level, created_at')
           .order('score', { ascending: false })
-          .limit(30);
-          
-        if (username.trim()) {
-          query = query.ilike('username', `%${username.trim()}%`);
+          .limit(100);
+        
+        if (searchTerm.trim()) {
+          query = query.ilike('username', `%${searchTerm.trim()}%`);
         }
         
         const { data, error } = await query;
-        leaderboardList.innerHTML = '';
+        
+        if (error) throw error;
+        
+        loadingElement.style.display = 'none';
         
         if (data && data.length) {
-          data.forEach((entry) => {
+          data.forEach((entry, index) => {
             const li = document.createElement('li');
-            li.textContent = `${entry.username} - ${entry.score} pts (Level ${entry.level || 1})`;
+            li.className = 'leaderboard-item';
+            if (currentUser && entry.username === currentUser) {
+              li.classList.add('current-user');
+            }
+            
+            // Special styling for top 3
+            let rankClass = '';
+            let medalIcon = '';
+            if (index === 0) {
+              rankClass = 'rank-1';
+              medalIcon = '<i class="fas fa-crown"></i>';
+            } else if (index === 1) {
+              rankClass = 'rank-2';
+              medalIcon = '<i class="fas fa-medal"></i>';
+            } else if (index === 2) {
+              rankClass = 'rank-3';
+              medalIcon = '<i class="fas fa-medal"></i>';
+            }
+            
+            li.innerHTML = `
+              <div class="rank ${rankClass}">${medalIcon}${index + 1}</div>
+              <div class="user-info">
+                <span class="username">${entry.username}</span>
+              </div>
+              <div>
+                <span class="score">${entry.score} pts</span>
+                <span class="level">(Level ${entry.level})</span>
+              </div>
+            `;
             leaderboardList.appendChild(li);
           });
         } else {
-          const li = document.createElement('li');
-          li.textContent = 'No scores found.';
-          leaderboardList.appendChild(li);
+          leaderboardList.innerHTML = '<li class="leaderboard-item">No scores found</li>';
         }
-      } catch (err) {
-        leaderboardList.innerHTML = '<li>Error loading leaderboard</li>';
+        
+        lastUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        loadingElement.style.display = 'none';
+        leaderboardList.innerHTML = '<li class="leaderboard-item">Error loading leaderboard</li>';
       }
     }
-
-    searchForm.addEventListener('submit', function(e){
-      e.preventDefault();
-      if (isOnline) {
+    
+    // Event listeners
+    searchBtn.addEventListener('click', () => {
+      fetchLeaderboard(searchInput.value);
+    });
+    
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
         fetchLeaderboard(searchInput.value);
       }
+    });
+    
+    themeBtn.addEventListener('click', () => {
+      themeDropdown.classList.toggle('show');
+    });
+    
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', () => {
+        setTheme(option.dataset.theme);
+      });
+    });
+    
+    backBtn.addEventListener('click', () => {
+      window.close();
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!themeBtn.contains(e.target) && !themeDropdown.contains(e.target)) {
+        themeDropdown.classList.remove('show');
+      }
+    });
+    
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTheme();
+      fetchLeaderboard();
     });
   </script>
 </body>

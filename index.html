@@ -2,51 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong Infinite Levels | Supabase Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Pong Ultimate</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="onlineStatus" class="offline">OFFLINE</div>
-  
-  <!-- Registration/Login Modal -->
+  <!-- Loading Screen -->
+  <div id="loadingScreen">
+    <div class="loader">
+      <div class="loader-circle"></div>
+      <div class="loader-text">Initializing Neon Pong...</div>
+      <div class="loader-details" id="loaderDetails"></div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
   <div id="authModal" class="modal">
     <div class="modal-content">
-      <h2>Welcome to Pong</h2>
+      <h2><i class="fas fa-gamepad"></i> Neon Pong</h2>
       <form id="registerForm" autocomplete="off">
         <input type="text" id="regUsername" placeholder="Username" maxlength="15" required>
         <input type="email" id="regEmail" placeholder="Email" required>
         <input type="password" id="regPassword" placeholder="Password" required>
-        <button type="submit">Register</button>
+        <button type="submit"><i class="fas fa-user-plus"></i> Register</button>
         <span class="toggle-link" id="showLogin">Already have an account? Login</span>
         <div id="regError" class="error"></div>
       </form>
       <form id="loginForm" autocomplete="off" style="display:none;">
         <input type="email" id="loginEmail" placeholder="Email" required>
         <input type="password" id="loginPassword" placeholder="Password" required>
-        <button type="submit">Login</button>
+        <button type="submit"><i class="fas fa-sign-in-alt"></i> Login</button>
         <span class="toggle-link" id="showRegister">No account? Register</span>
         <div id="loginError" class="error"></div>
       </form>
-      <button id="guestBtn" style="width:100%; padding:12px; border-radius:7px; border:none; 
-                background:#ff9800; color:#fff; font-size:1.1em; font-weight:bold; margin-top:10px;">
-        Play as Guest
+      <button id="guestBtn" class="btn btn-secondary">
+        <i class="fas fa-user"></i> Play as Guest
       </button>
-      <div class="guest-warning">Guest players can't access the leaderboard</div>
     </div>
   </div>
-  
-  <div id="gameArea" style="display:none;">
+
+  <!-- Offline Username Modal -->
+  <div id="offlineUsernameModal" class="modal">
+    <div class="modal-content">
+      <h2><i class="fas fa-user"></i> Enter Your Name</h2>
+      <form id="offlineUsernameForm">
+        <input type="text" id="offlineUsernameInput" placeholder="Player Name" maxlength="15" required>
+        <button type="submit" class="btn"><i class="fas fa-gamepad"></i> Start Playing</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="gameContainer">
+    <div id="onlineStatus">
+      <i class="fas fa-wifi"></i> <span>ONLINE</span>
+    </div>
+    
     <div id="userBar"></div>
-    <canvas id="gameCanvas" width="480" height="320"></canvas>
-    <div id="gameOverMsg"></div>
-    <button id="restartBtn" style="display:none;">Next Level</button>
-    <div id="leaderboard">
-      <h2>Leaderboard</h2>
-      <ul id="leaderboardList"></ul>
+    
+    <div id="gameHeader">
+      <div class="score" id="playerScore">0</div>
+      <div class="level-info">
+        <i class="fas fa-level-up-alt"></i> <span id="levelDisplay">1</span> 
+        | <i class="fas fa-trophy"></i> <span id="maxPoints">5</span>
+      </div>
+      <div class="score" id="aiScore">0</div>
     </div>
-    <a href="leaderboard.html" target="_blank" id="leaderboardBtn">LEADERBOARD</a>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="gameOverMsg"></div>
+    
+    <div id="gameControls">
+      <button id="startGameBtn" class="btn">
+        <i class="fas fa-play"></i> Start Game
+      </button>
+      <a href="leaderboard.html" target="_blank" class="btn btn-secondary">
+        <i class="fas fa-trophy"></i> View Leaderboard
+      </a>
+    </div>
+    
+    <div id="mobileControls">
+      <button class="mobile-btn" id="upBtn"><i class="fas fa-arrow-up"></i></button>
+      <button class="mobile-btn" id="downBtn"><i class="fas fa-arrow-down"></i></button>
+    </div>
+    
+    <button id="resetLevelBtn">
+      <i class="fas fa-undo"></i> Reset to Level 1
+    </button>
   </div>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <script src="game.js"></script>
 </body>
