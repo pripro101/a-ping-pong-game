@@ -7,6 +7,45 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Additional styles for larger leaderboard */
+    .leaderboard-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    
+    .leaderboard-item {
+      padding: 15px 20px;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+    
+    .rank {
+      font-size: 1.3rem;
+      width: 60px;
+    }
+    
+    .user-info {
+      font-size: 1.2rem;
+    }
+    
+    .score-info {
+      font-size: 1.2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .leaderboard-item {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .rank, .user-info, .score-info {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="leaderboard-container">
@@ -35,7 +74,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Supabase config (same as game.js)
+    // Supabase config
     const supabaseUrl = 'https://xvdeijzqjumkvchxabwc.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
@@ -52,26 +91,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const currentUser = urlParams.get('user');
 
-    // Device detection
-    let deviceType = 'desktop';
-    const ua = navigator.userAgent;
-    if (/mobile|android|iphone|ipad/i.test(ua)) deviceType = 'mobile';
-
     // Fetch leaderboard data
     async function fetchLeaderboard(searchTerm = '') {
       try {
         loadingElement.style.display = 'block';
         leaderboardList.innerHTML = '';
         
-        // First verify connection
-        const { data: testData, error: testError } = await supabase
-          .from('Leaderboard')
-          .select('*')
-          .limit(1);
-        
-        if (testError) throw testError;
-
-        // Main query
         let query = supabase
           .from('Leaderboard')
           .select('id, username, score, level, device, os, created_at')
@@ -98,12 +123,10 @@
           const li = document.createElement('li');
           li.className = 'leaderboard-item';
           
-          // Highlight current user
           if (currentUser && entry.username === currentUser) {
             li.classList.add('current-user');
           }
 
-          // Top 3 styling
           let rankClass = '';
           let medalIcon = '';
           if (index === 0) {
@@ -117,7 +140,6 @@
             medalIcon = '<i class="fas fa-medal"></i>';
           }
 
-          // Device icon
           let deviceIcon = '';
           if (entry.device === 'mobile') {
             deviceIcon = '<i class="fas fa-mobile-alt" title="Mobile"></i>';
