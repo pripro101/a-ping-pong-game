@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pripro Pong Game</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,6 +15,9 @@
       <div class="loader-circle"></div>
       <div id="loaderText">Loading Pripro Pong...</div>
       <div id="loaderDetails"></div>
+      <div id="securityStatus">
+        <i class="fas fa-shield-alt"></i> <span>Security Check...</span>
+      </div>
     </div>
   </div>
 
@@ -22,9 +26,9 @@
     <div class="modal-content">
       <h2><i class="fas fa-gamepad"></i> Pripro Pong</h2>
       <form id="registerForm" autocomplete="off">
-        <input type="text" id="regUsername" placeholder="Username" maxlength="15" required>
+        <input type="text" id="regUsername" placeholder="Username" maxlength="15" required pattern="[a-zA-Z0-9_]+" title="Only letters, numbers and underscores">
         <input type="email" id="regEmail" placeholder="Email" required>
-        <input type="password" id="regPassword" placeholder="Password" required>
+        <input type="password" id="regPassword" placeholder="Password" required minlength="8" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$" title="Minimum 8 chars with uppercase, lowercase, number and special character">
         <button type="submit"><i class="fas fa-user-plus"></i> Register</button>
         <span class="toggle-link" id="showLogin">Already have an account? Login</span>
         <div id="regError" class="error"></div>
@@ -47,7 +51,7 @@
     <div class="modal-content">
       <h2><i class="fas fa-user"></i> Enter Your Name</h2>
       <form id="offlineUsernameForm">
-        <input type="text" id="offlineUsernameInput" placeholder="Player Name" maxlength="15" required>
+        <input type="text" id="offlineUsernameInput" placeholder="Player Name" maxlength="15" required pattern="[a-zA-Z0-9_]+" title="Only letters, numbers and underscores">
         <button type="submit" class="btn"><i class="fas fa-gamepad"></i> Start Playing</button>
       </form>
     </div>
@@ -78,7 +82,7 @@
       <button id="startGameBtn" class="btn">
         <i class="fas fa-play"></i> Start Game
       </button>
-      <a href="leaderboard.html" target="_blank" class="btn btn-secondary">
+      <a href="leaderboard.html" target="_blank" class="btn btn-secondary" id="leaderboardBtn">
         <i class="fas fa-trophy"></i> View Leaderboard
       </a>
     </div>
@@ -88,9 +92,14 @@
       <button class="mobile-btn" id="downBtn"><i class="fas fa-arrow-down"></i></button>
     </div>
     
-    <button id="resetLevelBtn">
-      <i class="fas fa-undo"></i> Reset to Level 1
-    </button>
+    <div id="levelControls">
+      <button id="resetLevelBtn" class="level-btn">
+        <i class="fas fa-undo"></i> Reset to Level 1
+      </button>
+      <button id="prevLevelBtn" class="level-btn">
+        <i class="fas fa-step-backward"></i> Previous Level
+      </button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

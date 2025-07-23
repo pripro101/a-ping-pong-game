@@ -2,14 +2,21 @@
 const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
 
-// Initialize Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase with enhanced security
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Game State Variables
 let ball, player, ai;
 let playerScore = 0, aiScore = 0;
 let isGameOver = false, winner = null;
 let currentLevel = 1;
+let previousLevel = 1;
 let aiSpeed = 2, maxPoints = 5;
 let running = false;
 let isGuest = false;
@@ -18,6 +25,7 @@ let user = null;
 let deviceType = 'desktop';
 let os = 'unknown';
 let moveUp = false, moveDown = false;
+let securityChecksPassed = false;
 
 // DOM Elements
 const canvas = document.getElementById('gameCanvas');
@@ -29,6 +37,7 @@ const maxPointsEl = document.getElementById('maxPoints');
 const gameOverMsg = document.getElementById('gameOverMsg');
 const startGameBtn = document.getElementById('startGameBtn');
 const resetLevelBtn = document.getElementById('resetLevelBtn');
+const prevLevelBtn = document.getElementById('prevLevelBtn');
 const upBtn = document.getElementById('upBtn');
 const downBtn = document.getElementById('downBtn');
 const authModal = document.getElementById('authModal');
@@ -36,15 +45,21 @@ const offlineUsernameModal = document.getElementById('offlineUsernameModal');
 const gameContainer = document.getElementById('gameContainer');
 const userBar = document.getElementById('userBar');
 const onlineStatus = document.getElementById('onlineStatus');
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+const securityStatus = document.getElementById('securityStatus');
 
 // ========================
-// LOADING SYSTEM
+// SECURITY & INITIALIZATION
 // ========================
 
 async function initializeGame() {
   showLoading("Initializing Pripro Pong...");
   
   try {
+    // Run security checks first
+    await runSecurityChecks();
+    
+    // Detect device and OS
     detectDevice();
     
     // Minimum loading time (better UX)
@@ -70,10 +85,74 @@ async function initializeGame() {
   }
 }
 
+async function runSecurityChecks() {
+  try {
+    // Check for dev tools
+    const devtools = /./;
+    devtools.toString = function() {
+      securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="warning">Security Warning: Dev Tools Detected</span>';
+      return '';
+    };
+    console.log('%c', devtools);
+    
+    // Check if running in iframe (prevent clickjacking)
+    if (window.self !== window.top) {
+      securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="error">Security Error: Frame Detected</span>';
+      throw new Error("Frame detected - possible clickjacking attempt");
+    }
+    
+    // Check for tampered localStorage
+    try {
+      localStorage.setItem('security_test', 'test');
+      localStorage.removeItem('security_test');
+    } catch (e) {
+      securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="error">Security Error: Storage Tampered</span>';
+      throw new Error("LocalStorage tampered with");
+    }
+    
+    // All checks passed
+    securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="success">Security Verified</span>';
+    securityChecksPassed = true;
+    
+  } catch (err) {
+    console.error("Security check failed:", err);
+    throw err;
+  }
+}
+
 function detectDevice() {
   const ua = navigator.userAgent;
-  if (/mobile|android|iphone|ipad/i.test(ua)) deviceType = 'mobile';
-  document.getElementById('loaderDetails').textContent = `Device: ${deviceType.toUpperCase()}`;
+  
+  // Detect device type
+  if (/mobile|android|iphone|ipad/i.test(ua)) {
+    deviceType = 'mobile';
+  } else if (/tablet|ipad/i.test(ua)) {
+    deviceType = 'tablet';
+  } else {
+    deviceType = 'desktop';
+  }
+  
+  // Detect OS
+  if (/android/i.test(ua)) {
+    os = 'android';
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    os = 'ios';
+  } else if (/mac/i.test(ua)) {
+    os = 'mac';
+  } else if (/windows/i.test(ua)) {
+    os = 'windows';
+  } else if (/linux/i.test(ua)) {
+    os = 'linux';
+  }
+  
+  document.getElementById('loaderDetails').textContent = `Device: ${deviceType.toUpperCase()} | OS: ${os.toUpperCase()}`;
+}
+
+function vibrateDevice(duration = 50) {
+  if (deviceType !== 'mobile' && deviceType !== 'tablet') return;
+  if ('vibrate' in navigator) {
+    navigator.vibrate(duration);
+  }
 }
 
 function showLoading(message) {
@@ -104,7 +183,7 @@ function showGameUI() {
   authModal.style.display = 'none';
   gameContainer.style.display = 'block';
   resizeCanvas();
-  if (deviceType === 'mobile') {
+  if (deviceType === 'mobile' || deviceType === 'tablet') {
     document.getElementById('mobileControls').style.display = 'flex';
   }
 }
@@ -181,6 +260,7 @@ function update() {
   // Wall collision
   if (ball.y < ball.size || ball.y > canvas.height - ball.size) {
     ball.vy *= -1;
+    vibrateDevice(20);
   }
   
   // Paddle collision
@@ -189,6 +269,7 @@ function update() {
     ball.vx = Math.abs(ball.vx) * 1.05;
     const hitPos = (ball.y - (player.y + player.h/2)) / (player.h/2);
     ball.vy = hitPos * 5;
+    vibrateDevice(30);
   }
   
   if (ball.x + ball.size > ai.x && 
@@ -196,17 +277,20 @@ function update() {
     ball.vx = -Math.abs(ball.vx) * 1.05;
     const hitPos = (ball.y - (ai.y + ai.h/2)) / (ai.h/2);
     ball.vy = hitPos * 5;
+    vibrateDevice(30);
   }
   
   // Scoring
   if (ball.x < 0) {
     aiScore++;
     resetBall(false);
+    vibrateDevice(100);
   }
   
   if (ball.x > canvas.width) {
     playerScore++;
     resetBall(true);
+    vibrateDevice(100);
   }
   
   // AI Movement
@@ -295,6 +379,7 @@ function endGame(won) {
   
   if (won) {
     gameOverMsg.innerHTML = `<i class="fas fa-trophy"></i> You won Level ${currentLevel}!`;
+    previousLevel = currentLevel;
     currentLevel++;
     const settings = getLevelSettings(currentLevel);
     aiSpeed = settings.aiSpeed;
@@ -310,6 +395,7 @@ function endGame(won) {
     startGameBtn.textContent = 'Next Level';
   } else {
     gameOverMsg.innerHTML = `<i class="fas fa-times-circle"></i> Game Over at Level ${currentLevel}`;
+    previousLevel = currentLevel;
     currentLevel = Math.max(1, currentLevel - 1);
     if (!isGuest && navigator.onLine) saveLevelProgress();
     startGameBtn.textContent = 'Try Again';
@@ -373,6 +459,50 @@ async function handleLogin(email, password) {
   }
 }
 
+async function handleRegister(email, password, username) {
+  const errorEl = document.getElementById('regError');
+  errorEl.textContent = '';
+  
+  try {
+    // First check if username is available
+    const { data: usernameCheck, error: usernameError } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', username)
+      .single();
+
+    if (usernameCheck) {
+      throw new Error("Username already taken");
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+          device: deviceType,
+          os: os
+        },
+        emailRedirectTo: window.location.origin // Fix for email verification redirect
+      }
+    });
+
+    if (error) throw error;
+
+    errorEl.textContent = "Registration successful! Please check your email to verify your account.";
+    errorEl.style.color = "#00b894";
+
+    // Show login form after successful registration
+    document.getElementById('registerForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'block';
+    
+  } catch (err) {
+    errorEl.textContent = err.message || "Registration failed";
+    errorEl.style.color = "#ff5555";
+  }
+}
+
 // ========================
 // LEADERBOARD & PROGRESS
 // ========================
@@ -414,7 +544,9 @@ async function saveScore() {
         user_id: user.id,
         username,
         score: playerScore,
-        level: currentLevel
+        level: currentLevel,
+        device: deviceType,
+        os: os
       }]);
   } catch (err) {
     console.error("Score save failed:", err);
@@ -433,6 +565,7 @@ async function loadSavedLevel() {
     
     if (!error && data?.level) {
       currentLevel = data.level;
+      previousLevel = currentLevel;
       const settings = getLevelSettings(currentLevel);
       aiSpeed = settings.aiSpeed;
       maxPoints = settings.maxPoints;
@@ -460,10 +593,9 @@ async function saveLevelProgress() {
 }
 
 function updateLeaderboardLink() {
-  const links = document.querySelectorAll('a[href="leaderboard.html"]');
-  links.forEach(link => {
-    link.href = `leaderboard.html?user=${encodeURIComponent(username)}`;
-  });
+  if (!isGuest && user) {
+    leaderboardBtn.href = `leaderboard.html?user=${encodeURIComponent(username)}`;
+  }
 }
 
 // ========================
@@ -480,6 +612,7 @@ window.addEventListener('resize', resizeCanvas);
 window.addEventListener('online', () => {
   onlineStatus.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
   onlineStatus.className = 'online';
+  if (!isGuest && user) fetchLeaderboard();
 });
 
 window.addEventListener('offline', () => {
@@ -498,34 +631,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const errorEl = document.getElementById('regError');
-  errorEl.textContent = '';
-  
-  const username = document.getElementById('regUsername').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  
-  if (!username || !email || !password) {
-    errorEl.textContent = "Please fill all fields";
-    return;
-  }
-  
-  try {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } }
-    });
-    
-    if (error) throw error;
-    
-    errorEl.textContent = "Registration successful! Check your email.";
-    errorEl.style.color = "#00b894";
-    
-  } catch (err) {
-    errorEl.textContent = err.message || "Registration failed";
-    errorEl.style.color = "#ff5555";
-  }
+  await handleRegister(
+    document.getElementById('regEmail').value,
+    document.getElementById('regPassword').value,
+    document.getElementById('regUsername').value
+  );
 });
 
 document.getElementById('guestBtn').addEventListener('click', () => {
@@ -544,6 +654,7 @@ document.getElementById('offlineUsernameForm').addEventListener('submit', (e) =>
   
   if (username) {
     isGuest = true;
+    username = username.substring(0, 15);
     userBar.textContent = `Playing offline as: ${username}`;
     offlineUsernameModal.style.display = 'none';
     gameContainer.style.display = 'block';
@@ -562,6 +673,7 @@ startGameBtn.addEventListener('click', () => {
 });
 
 resetLevelBtn.addEventListener('click', () => {
+  previousLevel = currentLevel;
   currentLevel = 1;
   const settings = getLevelSettings(currentLevel);
   aiSpeed = settings.aiSpeed;
@@ -573,10 +685,28 @@ resetLevelBtn.addEventListener('click', () => {
   if (running) startGame();
 });
 
+prevLevelBtn.addEventListener('click', () => {
+  if (previousLevel !== currentLevel) {
+    const temp = currentLevel;
+    currentLevel = previousLevel;
+    previousLevel = temp;
+    
+    const settings = getLevelSettings(currentLevel);
+    aiSpeed = settings.aiSpeed;
+    maxPoints = settings.maxPoints;
+    updateLevelInfo();
+    
+    if (!isGuest && navigator.onLine) saveLevelProgress();
+    
+    if (running) startGame();
+  }
+});
+
 // Mobile controls
 upBtn.addEventListener('touchstart', (e) => {
   e.preventDefault();
   moveUp = true;
+  vibrateDevice(20);
 }, { passive: false });
 
 upBtn.addEventListener('touchend', (e) => {
@@ -587,6 +717,7 @@ upBtn.addEventListener('touchend', (e) => {
 downBtn.addEventListener('touchstart', (e) => {
   e.preventDefault();
   moveDown = true;
+  vibrateDevice(20);
 }, { passive: false });
 
 downBtn.addEventListener('touchend', (e) => {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pripro Pong Leaderboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +16,7 @@
     </div>
 
     <div class="search-container">
-      <input type="text" class="search-input" id="searchInput" placeholder="Search username...">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search username..." maxlength="15">
       <button class="search-btn" id="searchBtn">
         <i class="fas fa-search"></i> Search
       </button>
@@ -51,6 +52,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     const currentUser = urlParams.get('user');
 
+    // Device detection
+    let deviceType = 'desktop';
+    const ua = navigator.userAgent;
+    if (/mobile|android|iphone|ipad/i.test(ua)) deviceType = 'mobile';
+
     // Fetch leaderboard data
     async function fetchLeaderboard(searchTerm = '') {
       try {
@@ -68,7 +74,7 @@
         // Main query
         let query = supabase
           .from('Leaderboard')
-          .select('id, username, score, level, created_at')
+          .select('id, username, score, level, device, os, created_at')
           .order('score', { ascending: false })
           .limit(100);
 
@@ -111,12 +117,24 @@
             medalIcon = '<i class="fas fa-medal"></i>';
           }
 
+          // Device icon
+          let deviceIcon = '';
+          if (entry.device === 'mobile') {
+            deviceIcon = '<i class="fas fa-mobile-alt" title="Mobile"></i>';
+          } else if (entry.device === 'tablet') {
+            deviceIcon = '<i class="fas fa-tablet-alt" title="Tablet"></i>';
+          } else {
+            deviceIcon = '<i class="fas fa-desktop" title="Desktop"></i>';
+          }
+
           li.innerHTML = `
             <div class="rank ${rankClass}">${medalIcon}${index + 1}</div>
             <div class="user-info">
               <span class="username">${entry.username}</span>
+              ${deviceIcon}
+              <span class="os">${entry.os}</span>
             </div>
-            <div>
+            <div class="score-info">
               <span class="score">${entry.score} pts</span>
               <span class="level">(Level ${entry.level})</span>
             </div>
