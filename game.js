@@ -2,21 +2,14 @@
 const SUPABASE_URL = 'https://xvdeijzqjumkvchxabwc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2ZGVpanpxanVta3ZjaHhhYndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwODMwMzEsImV4cCI6MjA2ODY1OTAzMX0.kf6fCNd4n2sVcb06qyHo9zJ_7lRxMUZgryaGbp2mDJ8';
 
-// Initialize Supabase (CSP-safe)
-const supabase = (() => {
-  try {
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    });
-  } catch (error) {
-    console.error("Supabase initialization failed:", error);
-    return null;
+// Initialize Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
   }
-})();
+});
 
 // Game State Variables
 let ball, player, ai;
@@ -77,7 +70,7 @@ function hideLoading() {
 function showError(message) {
   if (loadingScreen && loaderText) {
     loaderText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
-    loaderText.style.color = 'var(--danger)';
+    loaderText.style.color = '#d63031';
   }
 }
 
@@ -90,9 +83,12 @@ function hideAuthModal() {
 }
 
 function showGameUI() {
-  document.getElementById('gameContainer').style.display = 'block';
-  resizeCanvas();
-  updateUserBar();
+  const gameContainer = document.getElementById('gameContainer');
+  if (gameContainer) {
+    gameContainer.style.display = 'block';
+    resizeCanvas();
+    updateUserBar();
+  }
 }
 
 function detectDevice() {
@@ -137,13 +133,18 @@ async function initializeGame() {
   try {
     detectDevice();
     
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Initialize canvas
+    if (!canvas || !ctx) {
+      throw new Error("Canvas not available");
+    }
+    resizeCanvas();
     
+    // Security check
     if (!runSecurityChecks()) {
       throw new Error("Security checks failed");
     }
     
+    // Check if online
     if (navigator.onLine) {
       onlineStatus.className = 'online';
       const { data: { session } } = await supabase.auth.getSession();
@@ -154,7 +155,9 @@ async function initializeGame() {
       }
     } else {
       onlineStatus.className = 'offline';
-      onlineStatus.querySelector('span').textContent = 'OFFLINE';
+      if (onlineStatus.querySelector('span')) {
+        onlineStatus.querySelector('span').textContent = 'OFFLINE';
+      }
     }
     
     showAuthModal();
@@ -199,12 +202,22 @@ function runSecurityChecks() {
 
 // Game Core Functions
 function resizeCanvas() {
-  const maxHeight = window.innerHeight * 0.8;
-  const ratio = 16/9;
-  const width = Math.min(maxHeight * ratio, window.innerWidth * 0.95);
-  canvas.width = width;
-  canvas.height = width / ratio;
-  if (running) initGameObjects();
+  try {
+    const maxHeight = window.innerHeight * 0.8;
+    const ratio = 16/9;
+    const width = Math.min(maxHeight * ratio, window.innerWidth * 0.95);
+    
+    if (canvas) {
+      canvas.width = width;
+      canvas.height = width / ratio;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${width / ratio}px`;
+    }
+    
+    if (running) initGameObjects();
+  } catch (error) {
+    console.error("Canvas resize error:", error);
+  }
 }
 
 function initGameObjects() {
@@ -293,11 +306,11 @@ function update() {
 
 function draw() {
   // Clear canvas
-  ctx.fillStyle = 'var(--darker)';
+  ctx.fillStyle = '#1e272e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Draw center line
-  ctx.strokeStyle = 'var(--glass-border)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.setLineDash([10, 10]);
   ctx.beginPath();
   ctx.moveTo(canvas.width/2, 0);
@@ -306,13 +319,13 @@ function draw() {
   ctx.setLineDash([]);
   
   // Draw ball
-  ctx.fillStyle = 'var(--primary-light)';
+  ctx.fillStyle = '#a29bfe';
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, ball.size/2, 0, Math.PI * 2);
   ctx.fill();
   
   // Draw paddles
-  ctx.fillStyle = 'var(--primary)';
+  ctx.fillStyle = '#6c5ce7';
   ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
 }
@@ -325,8 +338,8 @@ function resetBall() {
 }
 
 function updateScore() {
-  playerScoreElement.textContent = playerScore;
-  aiScoreElement.textContent = aiScore;
+  if (playerScoreElement) playerScoreElement.textContent = playerScore;
+  if (aiScoreElement) aiScoreElement.textContent = aiScore;
 }
 
 function gameOver() {
@@ -338,7 +351,7 @@ function gameOver() {
     gameOverMsg.innerHTML = winner === 'player' 
       ? `<i class="fas fa-trophy"></i> You Win!` 
       : `<i class="fas fa-skull"></i> Game Over`;
-    gameOverMsg.style.color = winner === 'player' ? 'var(--accent)' : 'var(--danger)';
+    gameOverMsg.style.color = winner === 'player' ? '#00b894' : '#d63031';
   }
   
   if (winner === 'player' && !isGuest && navigator.onLine) {
@@ -438,7 +451,11 @@ function vibrateDevice(duration = 50) {
 }
 
 // Event Listeners
-window.addEventListener('DOMContentLoaded', initializeGame);
+window.addEventListener('DOMContentLoaded', () => {
+  // Initialize after all resources are loaded
+  window.addEventListener('load', initializeGame);
+});
+
 window.addEventListener('resize', resizeCanvas);
 
 // Keyboard controls
@@ -597,7 +614,7 @@ async function handleRegister(email, password, username) {
     
     if (regError) {
       regError.textContent = "Check your email for confirmation!";
-      regError.style.color = 'var(--success)';
+      regError.style.color = '#00b894';
     }
     
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -606,7 +623,7 @@ async function handleRegister(email, password, username) {
     console.error("Registration error:", error);
     if (regError) {
       regError.textContent = error.message;
-      regError.style.color = 'var(--danger)';
+      regError.style.color = '#d63031';
     }
   }
 }
@@ -629,7 +646,7 @@ async function handleLogin(email, password) {
     console.error("Login error:", error);
     if (loginError) {
       loginError.textContent = error.message;
-      loginError.style.color = 'var(--danger)';
+      loginError.style.color = '#d63031';
     }
   }
 }
