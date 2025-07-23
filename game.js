@@ -69,8 +69,8 @@ function hideLoading() {
 
 function showError(message) {
   if (loadingScreen && loaderText) {
-    loaderText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
-    loaderText.style.color = '#d63031';
+    loaderText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span class="fa-fallback">⚠️</span> ${message}`;
+    loaderText.style.color = 'var(--danger)';
   }
 }
 
@@ -175,7 +175,7 @@ function runSecurityChecks() {
     const devtools = /./;
     devtools.toString = function() {
       if (securityStatus) {
-        securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="warning">Security Warning</span>';
+        securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="fa-fallback">🛡️</span> <span class="warning">Security Warning</span>';
       }
       return '';
     };
@@ -191,7 +191,7 @@ function runSecurityChecks() {
     localStorage.removeItem('security_test');
     
     if (securityStatus) {
-      securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="success">Security Verified</span>';
+      securityStatus.innerHTML = '<i class="fas fa-shield-alt"></i> <span class="fa-fallback">🛡️</span> <span class="success">Security Verified</span>';
     }
     return true;
   } catch (err) {
@@ -349,8 +349,8 @@ function gameOver() {
   
   if (gameOverMsg) {
     gameOverMsg.innerHTML = winner === 'player' 
-      ? `<i class="fas fa-trophy"></i> You Win!` 
-      : `<i class="fas fa-skull"></i> Game Over`;
+      ? `<i class="fas fa-trophy"></i> <span class="fa-fallback">🏆</span> You Win!` 
+      : `<i class="fas fa-skull"></i> <span class="fa-fallback">💀</span> Game Over`;
     gameOverMsg.style.color = winner === 'player' ? '#00b894' : '#d63031';
   }
   
@@ -359,7 +359,7 @@ function gameOver() {
   }
   
   if (startGameBtn) {
-    startGameBtn.innerHTML = '<i class="fas fa-redo"></i> Play Again';
+    startGameBtn.innerHTML = '<i class="fas fa-redo"></i> <span class="fa-fallback">↻</span> Play Again';
   }
   
   vibrateDevice(200);
@@ -396,7 +396,7 @@ function startGame() {
   }
   
   if (startGameBtn) {
-    startGameBtn.innerHTML = '<i class="fas fa-play"></i> Start Game';
+    startGameBtn.innerHTML = '<i class="fas fa-play"></i> <span class="fa-fallback">▶️</span> Start Game';
   }
   
   initGameObjects();
