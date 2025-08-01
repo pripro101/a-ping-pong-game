@@ -1,0 +1,381 @@
+/*
+ * Screen stylesheet for HTML 5 Mobile Gameboy.
+ *
+ * Author: @gabrielrcouto refactored by: @IAMFELIPESOUZA;
+ * Version: 1, 22 july 2013
+ *
+ * Based on Geoffray original version. Thank you Geoffray!
+ *
+ * @author  Geoffray Warnants <gwarnants [at] gmail.com>
+ * @website http://geoffray.be
+ * @created 2012-07-28
+ */
+
+div {
+    -webkit-user-select: none;
+}
+
+#game {
+    width:340px;
+    height: 306px;
+    margin: 24px 0 30px 30px;
+    border-radius:4%;
+}
+#display {
+    width:360px;
+    height: 306px;
+    margin: 24px 0 30px 0;
+    border-radius: 4%;
+    background-color: #A9A9A9;
+}
+#display .line1{
+    width: 90px;
+    height: 2px;
+    margin: 0 0 0 15px;
+    background-color: #99004F;
+}
+#display .line2{
+    width: 90px;
+    height: 2px;
+    margin: -7px 0 0 15px;
+    background-color: #000080;
+}
+#display .line3{
+    width: 60px;
+    height: 2px;
+    margin: -7px 0 0 285px;
+    background-color: #99004F;
+}
+#display .line4{
+    width: 60px;
+    height: 2px;
+    margin: -7px 0 0 285px;
+    background-color:#000080;
+}
+#display h3{
+    width: 250px;
+    height: 15px;
+    font-size: 10px;
+    color: #eee;
+    text-align: center;
+    margin: -4px 0 0 70px;
+    font-family: arial;
+}
+#display-game{
+    width: 263px;
+    height: 240px;
+    background-color: green;
+    margin: 15px 0 0 50px;
+    border-radius: 4px;
+}
+#display-game canvas{
+    border-radius: 4px;
+}
+#display .battery{
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+    background-color: #000;
+    margin: -150px 0 8px 18px;
+}
+#display h4{
+    color: #eee;
+    margin: 0 0 0 7px;
+    font-size: 8px;
+    font-family: arial;
+}
+#game #display{
+    border-radius: 4%;
+    border-bottom-right-radius: 20%;
+}
+#name {
+    margin: -15px 0 0 34px;
+    color: #000080;
+}
+#name .TM{
+    width: 5px;
+    height: 5px;
+    margin: -10px 0 10px 235px;
+    font-family: arial;
+}
+
+#gameboy {
+    width:427px;
+    margin: 12px auto;
+}
+#name .gameboyfont {
+    font-family: arial;
+    font-size: 25px;
+    font-style: italic;
+}
+#gameboy .cl {
+    clear:left;
+    width:0;
+    height:0;
+}
+#name .nintendo {
+    font-family: 'pretendoregular';
+    font-size: 16px;
+    letter-spacing: 0.5px;
+}
+@font-face {
+    font-family: 'pretendoregular';
+    src: url('../font/pretendo-webfont.eot');
+    src: url('../font/pretendo-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../font/pretendo-webfont.woff') format('woff'),
+         url('../font/pretendo-webfont.ttf') format('truetype'),
+         url('../font/pretendo-webfont.svg#pretendoregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+#gameboy-bottom {
+    border-top:1px solid #BFBFBF;   /* without that border a but appear with child div margin-top */
+    height:610px;
+    border-radius: 3%;
+    border-bottom-right-radius: 15%;
+    box-shadow:inset 4px -4px 4px #BFBFBF, inset -4px -4px 4px #BFBFBF;
+    background:#DBDBDB;
+    background:-moz-linear-gradient(-45deg,  #DBDBDB 0%, #DBDBDB 32%, #ededed 61%, #DBDBDB 75%, #DBDBDB 88%, #A5A5A5 97%);
+    background:-webkit-gradient(linear, left top, right bottom, color-stop(0%,#DBDBDB), color-stop(32%,#DBDBDB), color-stop(61%,#ededed), color-stop(75%,#DBDBDB), color-stop(88%,#DBDBDB), color-stop(97%,#A5A5A5));
+    background:-webkit-linear-gradient(-45deg,  #DBDBDB 0%,#DBDBDB 32%,#ededed 61%,#DBDBDB 75%,#DBDBDB 88%,#A5A5A5 97%);
+    background:-o-linear-gradient(-45deg,  #DBDBDB 0%,#DBDBDB 32%,#ededed 61%,#DBDBDB 75%,#DBDBDB 88%,#A5A5A5 97%);
+    background:-ms-linear-gradient(-45deg,  #DBDBDB 0%,#DBDBDB 32%,#ededed 61%,#DBDBDB 75%,#DBDBDB 88%,#A5A5A5 97%);
+    background:linear-gradient(135deg,  #DBDBDB 0%,#DBDBDB 32%,#ededed 61%,#DBDBDB 75%,#DBDBDB 88%,#A5A5A5 97%);
+}
+
+#gameboy-paddle {
+    float:left;
+    margin: 24px 0 0 0;
+}
+
+/* up */
+#gameboy-paddle > div:nth-child(1) {
+    width:40px;
+    height:36px;
+    margin-left:68px;
+    border-top:1px solid #323232;
+    border-top-left-radius:5px;
+    border-top-right-radius:5px;
+    background-color:#323232;
+}
+
+#gameboy-paddle > div:nth-child(2) {
+    float:left;
+    height:40px;
+    width:36px;
+    margin-left:32px;
+    border-top-left-radius:5px;
+    border-bottom-left-radius:5px;
+    background-color:#323232;
+}
+
+#gameboy-paddle > div:nth-child(3) {
+    float:left;
+    width:40px;
+    height:40px;
+    background-color:#323232;
+}
+
+#gameboy-paddle > div:nth-child(4) {
+    float:left;
+    width:36px;
+    height:40px;
+    border-top-right-radius:5px;
+    border-bottom-right-radius:5px;
+    background-color:#323232;
+}
+
+/* down */
+#gameboy-paddle > div:nth-child(6) { /* 5th child is the clear left ! */
+    width:40px;
+    height:26px;
+    padding-top: 10px;
+    margin-left:68px;
+    border-bottom-left-radius:5px;
+    border-bottom-right-radius:5px;
+    border-top:1px solid #323232;
+    background-color:#323232;
+}
+
+#gameboy-paddle > div:nth-child(1):hover, #gameboy-paddle > div:nth-child(2):hover,
+#gameboy-paddle > div:nth-child(4):hover, #gameboy-paddle > div:nth-child(6):hover {
+    background-color: #272727;
+}
+
+#gameboy-paddle > div:nth-child(3) div {
+    width:18px;
+    height:18px;
+    margin:10px 0 0 11px;
+    border-radius:9px;
+    box-shadow:inset 0 -1px 1px #7C7C7C;
+    background-color:#272727;
+}
+
+#gameboy-paddle > div:nth-child(1) div, #gameboy-paddle > div:nth-child(6) div {
+    width:30px;
+    height:4px;
+    margin:3px 0 0 5px;
+    border-radius:2px;
+    box-shadow:inset 0 -1px 1px #7C7C7C;
+    background-color:#242424;
+}
+
+#gameboy-paddle > div:nth-child(2) div, #gameboy-paddle > div:nth-child(4) div {
+    float:left;
+    width:4px;
+    height:30px;
+    background-color:#242424;
+    margin:5px 0 0 3px;
+    border-radius:2px;
+    box-shadow:inset 0 -1px 1px #7C7C7C;
+}
+
+#gameboy-paddle > div:nth-child(4) div {
+    float: right;
+    margin-left: 0px;
+    margin-right: 3px;
+}
+
+#gameboy-buttons {
+    float:left;
+    margin:25px 0 0 130px;
+    color:#230081;
+    font-weight:bold;
+    font-family:Tahoma;
+    font-size:15px;
+    -moz-transform:rotate(324deg);
+    -webkit-transform:rotate(324deg);
+}
+
+#gameboy-buttons span:nth-child(2) {
+    margin-left:30px;
+}
+
+#gameboy-buttons span:nth-child(3) {
+    margin-left:54px;
+}
+
+#gameboy-buttons-inset {
+    margin-bottom:5px;
+    padding:7px;
+    border-radius:28px;
+    background:#F7F7F7;
+    background:-moz-linear-gradient(-45deg, #F7F7F7 0%, #BCBCBC 100%);
+    background:-webkit-gradient(linear, left top, right bottom, color-stop(0%,#F7F7F7), color-stop(100%,#BCBCBC));
+    background:-webkit-linear-gradient(-45deg, #F7F7F7 0%,#BCBCBC 100%);
+    background:-o-linear-gradient(-45deg, #F7F7F7 0%,#BCBCBC 100%);
+    background:-ms-linear-gradient(-45deg, #F7F7F7 0%,#BCBCBC 100%);
+    background:linear-gradient(135deg, #F7F7F7 0%,#BCBCBC 100%);
+}
+
+#gameboy-buttons-inset > div:nth-child(1) {
+    float:left;
+    width:42px;
+    height:42px;
+    border-radius:20px;
+    background-color:#99004F;
+    box-shadow: inset 2px -2px 2px #BFBFBF, inset -3px 3px 2px #6A053B;
+}
+
+#gameboy-buttons-inset > div:nth-child(2) {
+    float:left;
+    width:42px;
+    height:42px;
+    margin-left:27px;
+    border-radius:20px;
+    background-color:#99004F;
+    box-shadow:inset 2px -2px 2px #BFBFBF, inset -3px 3px 2px #6A053B;
+}
+
+#gameboy-buttons-inset > div:nth-child(1):hover, #gameboy-buttons-inset > div:nth-child(2):hover {
+    background-color: #6A053B;
+}
+
+#gameboy-startpause {
+    width:200px;
+    height:60px;
+    margin:14px 0 0 155px;
+    color:#230081;
+    font-weight:bold;
+    font-family:Tahoma;
+    font-size:11px;
+}
+
+#gameboy-startpause > div {
+    float:left;
+    -moz-transform:rotate(330deg);
+    -webkit-transform:rotate(324deg);
+}
+
+#gameboy-startpause > div:nth-child(2) {
+    margin-left:15px;
+}
+
+#gameboy-startpause > div > div {
+    width:44px;
+    height:10px;
+    margin-bottom:4px;
+    background-color:#807B8C;
+    border-radius:5px;
+    box-shadow:inset 2px -2px 2px #BFBFBF, inset -2px 2px 2px #000;
+}
+
+#gameboy-startpause > div > div:hover {
+    background-color: #000000;
+}
+#gameboy-bottom .audio1 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    border-radius-bottomleft: 10%;
+    margin: -25px 0 0 290px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
+#gameboy-bottom .audio2 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    margin: -18px 0 0 302px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
+#gameboy-bottom .audio3 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    margin: -18px 0 0 315px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
+#gameboy-bottom .audio4 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    margin: -19px 0 0 328px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
+#gameboy-bottom .audio5 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    margin: -19px 0 0 340px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
+#gameboy-bottom .audio6 {
+    width: 80px;
+    height: 10px;
+    background-color: #A9A9A9;
+    border-radius: 10px;
+    margin: -19px 0 0 352px;
+    -moz-transform:rotate(415deg);
+    -webkit-transform:rotate(415deg);
+}
