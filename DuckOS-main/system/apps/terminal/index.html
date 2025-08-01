@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DuckOS Terminal</title>
+  <style>
+    body {
+      background-color: black;
+      color: green;
+      font-family: monospace;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #terminal {
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    #output {
+      white-space: pre-line;
+    }
+
+    #input-line {
+      display: flex;
+      align-items: center;
+    }
+
+    #input {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      color: green;
+      font-family: monospace;
+      outline: none;
+    }
+
+    #launcher {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(0, 255, 0, 0.1);
+      border: 1px solid green;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      max-width: 200px;
+      color: green;
+      backdrop-filter: blur(3px);
+    }
+
+    #launcher-apps button {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      background: black;
+      color: green;
+      border: 1px solid green;
+      font-family: monospace;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="launcher">
+    <strong>🦆 DuckOS Apps:</strong>
+    <div id="launcher-apps"></div>
+  </div>
+
+  <div id="terminal">
+    <div>Welcome to DuckOS Terminal Emulator!</div>
+    <div>Type "help" or "prog help" to get started.</div>
+    <br>
+    <div id="output"></div>
+    <div id="input-line">
+      <span>admin@DuckOS: ~/root$ &gt; </span>
+      <input type="text" id="input" autofocus />
+    </div>
+  </div>
+
+  <script>
+    const outputDiv = document.getElementById('output');
+    const input = document.getElementById('input');
+    const inputLine = document.getElementById('input-line');
+    const launcherApps = document.getElementById('launcher-apps');
+
+    let installedPackages = JSON.parse(localStorage.getItem('duckosInstalledApps') || '{}');
+    let appRegistry = {};
+
+    function savePackages() {
+      localStorage.setItem('duckosInstalledApps', JSON.stringify(installedPackages));
+    }
+
+    function appendResponse(text, color = 'green') {
+      const responseLine = document.createElement('div');
+      responseLine.textContent = text;
+      responseLine.style.color = color;
+      outputDiv.appendChild(responseLine);
+    }
+
+    function installApp(appName) {
+      if (!appRegistry[appName]) {
+        appendResponse(`App "${appName}" not found in registry.`, 'red');
+        return;
+      }
+
+      installedPackages[appName] = appRegistry[appName].url;
+      savePackages();
+      appendResponse(`${appName} installed successfully!`);
+      updateLauncher();
+    }
+
+    function removeApp(appName) {
+      if (installedPackages[appName]) {
+        delete installedPackages[appName];
+        savePackages();
+        appendResponse(`${appName} has been removed.`);
+        updateLauncher();
+      } else {
+        appendResponse(`${appName} is not installed.`, 'red');
+      }
+    }
+
+    function updateLauncher() {
+      launcherApps.innerHTML = '';
+      Object.keys(installedPackages).forEach(app => {
+        const btn = document.createElement('button');
+        btn.textContent = `🟢 ${app}`;
+        btn.onclick = () => {
+          const url = installedPackages[app];
+          window.open(url, '_blank');
+        };
+        launcherApps.appendChild(btn);
+      });
+    }
+
+    function fetchAppList() {
+      fetch("https://pripro101.github.io/progpackagesmanager/index.json")
+        .then(res => res.json())
+        .then(data => {
+          appRegistry = data;
+        })
+        .catch(() => {
+          appendResponse("Failed to fetch remote app list.", "red");
+        });
+    }
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const command = input.value.trim();
+        const outputLine = document.createElement('div');
+        outputLine.textContent = `admin@DuckOS: ~/root$ ${command}`;
+        outputDiv.appendChild(outputLine);
+        input.value = '';
+
+        switch (command) {
+          case 'help':
+            appendResponse(`
+Available commands:
+- help
+- clear
+- date
+- echo [text]
+- calc [expression]
+- prog help
+`);
+            break;
+
+          case 'clear':
+            outputDiv.innerHTML = '';
+            break;
+
+          case 'date':
+            appendResponse(new Date().toString());
+            break;
+
+          case 'prog help':
+            appendResponse(`
+prog - DuckOS Package Manager
+
+Commands:
+  prog help               Show this help
+  prog list               List available apps
+  prog update             Refresh app index
+  prog install <app>      Install an app
+  prog remove <app>       Remove an app
+  prog info <app>         Show app information
+`);
+            break;
+
+          case 'prog list':
+            if (Object.keys(appRegistry).length === 0) {
+              appendResponse('Loading app list...');
+            } else {
+              const list = Object.entries(appRegistry)
+                .map(([id, app]) => `- ${id}: ${app.name}`)
+                .join('\n');
+              appendResponse(`Available apps:\n${list}`);
+            }
+            break;
+
+          case 'prog update':
+            appendResponse('Refreshing DuckOS app index...');
+            fetchAppList();
+            setTimeout(() => appendResponse('All apps are up to date!'), 1000);
+            break;
+
+          default:
+            if (command.startsWith('echo ')) {
+              appendResponse(command.slice(5));
+            } else if (command.startsWith('calc ')) {
+              try {
+                const result = eval(command.slice(5));
+                appendResponse(`Result: ${result}`);
+              } catch {
+                appendResponse('Invalid expression', 'red');
+              }
+            } else if (command.startsWith('prog install ')) {
+              const app = command.slice(13).trim();
+              if (app) installApp(app);
+              else appendResponse('No app specified.', 'red');
+            } else if (command.startsWith('prog remove ')) {
+              const app = command.slice(12).trim();
+              if (app) removeApp(app);
+              else appendResponse('No app specified.', 'red');
+            } else if (command.startsWith('prog info ')) {
+              const app = command.slice(10).trim();
+              if (appRegistry[app]) {
+                const info = appRegistry[app];
+                appendResponse(`${info.name}\nDescription: ${info.desc}\nLaunch URL: ${info.url}`);
+              } else {
+                appendResponse('No info found for that app.', 'red');
+              }
+            } else {
+              appendResponse(`Command not found: ${command}`, 'red');
+            }
+            break;
+        }
+
+        inputLine.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    });
+
+    // Load registry + launcher
+    fetchAppList();
+    updateLauncher();
+  </script>
+</body>
+</html>
